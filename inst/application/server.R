@@ -8,13 +8,13 @@ shinyServer(function(input, output, session) {
     DT.options = list(
       aLengthMenu = c(10, 30, 50), iDisplayLength = 10,
       scrollX = TRUE, language = list(
-        search = HTML('<i class="fa fa-search"></i>'),
+        search = shiny::HTML('<i class="fa fa-search"></i>'),
         info = "", emptyTable = "", zeroRecords = "",
         paginate = list(
-          "previous" = HTML('<i class="fa fa-backward"></i>'),
-          "next" = HTML('<i class="fa fa-forward"></i>'),
-          "first" =HTML('<i class="fa fa-fast-backward"></i>'), 
-          "last" = HTML('<i class="fa fa-fast-forward"></i>')))
+          "previous" = shiny::HTML('<i class="fa fa-backward"></i>'),
+          "next" = shiny::HTML('<i class="fa fa-forward"></i>'),
+          "first" =shiny::HTML('<i class="fa fa-fast-backward"></i>'), 
+          "last" = shiny::HTML('<i class="fa fa-fast-forward"></i>')))
     )
   )
 
@@ -29,39 +29,36 @@ shinyServer(function(input, output, session) {
   #' @return functions
   #' @export
   #'
-  updateAceEditor(session, "fieldCodeResum", "summary(datos)")
-  updateAceEditor(session, "fieldModelCor", modelo.cor())
-  updateAceEditor(session, "fieldFuncJambu",
-    paste0(extract.code("lead"), "\n", extract.code("codo.jambu")))
-  updateAceEditor(session, "fieldFuncNum", extract.code("distribucion.numerico"))
-  updateAceEditor(session, "fieldFuncCat", extract.code("distribucion.categorico"))
-  updateAceEditor(session, "fieldCodeCentr", extract.code("calc.centros"))
-  updateAceEditor(session, "fieldFuncHoriz", extract.code("centros.horizontal.todos"))
-  updateAceEditor(session, "fieldFuncVert", extract.code("centros.vertical.todos"))
-  updateAceEditor(session, "fieldFuncRadar",
-    paste0(extract.code("coord_radar"), "\n", extract.code("centros.radar")))
-  updateAceEditor(session, "fieldFuncKhoriz", extract.code("centros.horizontal.todos"))
-  updateAceEditor(session, "fieldFuncKvert", extract.code("centros.vertical.todos"))
-  updateAceEditor(session, "fieldFuncKradar", 
-    paste0(extract.code("coord_radar"), "\n", extract.code("centros.radar")))
+  shinyAce::updateAceEditor(session, "fieldCodeResum", "summary(datos)")
+  shinyAce::updateAceEditor(session, "fieldFuncNum", 
+                            extract.code("distribucion.numerico"))
+  shinyAce::updateAceEditor(session, "fieldFuncCat", 
+                            extract.code("distribucion.categorico"))
+  shinyAce::updateAceEditor(session, "fieldCodeCentr", 
+                            extract.code("calc.centros"))
+  shinyAce::updateAceEditor(session, "fieldFuncHoriz", 
+                            extract.code("centros.horizontal.todos"))
+  shinyAce::updateAceEditor(session, "fieldFuncVert", 
+                            extract.code("centros.vertical.todos"))
+  shinyAce::updateAceEditor(
+    session, "fieldFuncRadar", paste0(extract.code("centros.radar")))
+  shinyAce::updateAceEditor(session, "fieldFuncKhoriz", 
+                            extract.code("centros.horizontal.todos"))
+  shinyAce::updateAceEditor(session, "fieldFuncKvert", 
+                            extract.code("centros.vertical.todos"))
+  shinyAce::updateAceEditor(
+    session, "fieldFuncKradar", paste0(extract.code("centros.radar")))
   
-  updateData <- reactiveValues(
-    datos = NULL, cor.modelo = NULL, pca.modelo = NULL,
-    hc.modelo = NULL, k.modelo = NULL)
+  updateData <- shiny::reactiveValues(
+    datos = NULL, pca.modelo = NULL, hc.modelo = NULL, k.modelo = NULL)
 
-  updatePlot <- reactiveValues(
-    calc.normal=default.calc.normal(), normal=NULL, disp=NULL, pca.ind=NULL,
-    pca.var=NULL, pca.bi=NULL, cor=NULL, pca.cvc=NULL, mapa=NULL, dya.num=NULL,
-    dya.cat=NULL, diag=NULL, horiz=NULL, vert=NULL, radar=NULL, cat=NULL,
-    jambu=NULL, kmapa=NULL, khoriz=NULL, kvert=NULL, kradar=NULL, kcat=NULL)
+  disp.ranges  <- shiny::reactiveValues(x = NULL, y = NULL)
+  ind.ranges   <- shiny::reactiveValues(x = NULL, y = NULL)
+  bi.ranges    <- shiny::reactiveValues(x = NULL, y = NULL)
+  mapa.ranges  <- shiny::reactiveValues(x = NULL, y = NULL)
+  kmapa.ranges <- shiny::reactiveValues(x = NULL, y = NULL)
 
-  disp.ranges <- reactiveValues(x = NULL, y = NULL)
-  ind.ranges <- reactiveValues(x = NULL, y = NULL)
-  bi.ranges <- reactiveValues(x = NULL, y = NULL)
-  mapa.ranges <- reactiveValues(x = NULL, y = NULL)
-  kmapa.ranges <- reactiveValues(x = NULL, y = NULL)
-
-  observe({
+  shiny::observe({
     updateMenu(init = T)
     close.menu()
   })
@@ -71,42 +68,43 @@ shinyServer(function(input, output, session) {
   #' @return functions
   #' @export
   #'
-  observeEvent(input$loadButton, {
-    codigo.carga <- ""
-    codigo.na <- ""
+  shiny::observeEvent(input$loadButton, {
+    rowname    <- shiny::isolate(input$rowname)
+    ruta       <- shiny::isolate(input$file1)
+    sep        <- shiny::isolate(input$sep)
+    dec        <- shiny::isolate(input$dec)
+    encabezado <- shiny::isolate(input$header)
+    deleteNA   <- shiny::isolate(input$deleteNA)
     tryCatch({
       codigo.carga <- code.carga(
-        nombre.filas = input$rowname, ruta = input$file1$datapath,
-        separador = input$sep, sep.decimal = input$dec,
-        encabezado = input$header)
-      datos.originales <<- isolate(eval(parse(text = codigo.carga)))
-      if(ncol(datos.originales) <= 1){
-        showNotification(
-          paste0("ERROR: Check Separators"), duration = 10, type = "error")
+        rowname, ruta$datapath, sep, dec, encabezado, deleteNA)
+      if (isTRUE(getOption("shiny.testmode"))) {
+        shinyAce::updateAceEditor(session, "fieldCodeData", value = "codigo")
+      }else {
+        shinyAce::updateAceEditor(session, "fieldCodeData", value = codigo.carga)
+      }
+      eval(parse(text = codigo.carga))
+      if(ncol(datos.originales) <= 1) {
+        shiny::showNotification(
+          "ERROR: Check Separators", duration = 10, type = "error")
         return(NULL)
       }
-      if(any(is.na(datos.originales))) {
-        codigo.na <- paste0(code.NA(deleteNA = input$deleteNA))
-        isolate(eval(parse(text = codigo.na)))
-        nombre.datos <<- paste0(stringi::stri_extract_first(
-          str = input$file1$name, regex = ".*(?=\\.)"), 
-          ifelse(input$deleteNA, ".sinNA.", ".conNA.")
-        )
-      } else {
-        nombre.datos <<- stringi::stri_extract_first(
-          str = input$file1$name, regex = ".*(?=\\.)")
-      }
+      nombre.datos <<- 
+        paste0(ruta$name, ifelse(deleteNA, ".sinNA.", ".conNA."))
       datos.reporte[[nombre.datos]] <<- datos.originales
       init.replist(nombre.datos)
+      
+      updateMenu(datos.originales)
+      updateSelects(datos.originales)
       updateData$datos <- datos.originales
+      close.menu(is.null(datos.originales))
     }, error = function(e) {
-      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-       updateData$datos <- NULL
-       datos.originales <<- NULL
-       return(NULL)
+      updateData$datos <- NULL
+      datos.originales <<- NULL
+      updateMenu(NULL)
+      close.menu(is.null(NULL))
+      mostrarError(e)
     })
-    updateAceEditor(session, "fieldCodeData",
-                    value = paste0(codigo.carga, "\n", codigo.na))
   })
 
   #' Transform Button Function
@@ -114,38 +112,46 @@ shinyServer(function(input, output, session) {
   #' @return functions
   #' @export
   #'
-  observeEvent(input$transButton, {
+  shiny::observeEvent(input$transButton, {
     code.res <- ""
     datos <- datos.originales
     rep.vars <- c()
-    for (var in colnames(datos.originales)) {
-      if(input[[paste0("box", var, contador)]]) {
-        rep.vars <- c(rep.vars, paste0(
-          var, ":", input[[paste0("sel", var, contador)]]))
-        if(input[[paste0("sel", var, contador)]] == "categorico" &
-           class(datos.originales[, var]) %in% c("numeric","integer")) {
-          code.res <- paste0(code.res, code.trans(var, "categorico"), "\n")
+    
+    if (isTRUE(getOption("shiny.testmode"))) {
+      code.res <- codigo.prueba()
+      shinyAce::updateAceEditor(session, "fieldCodeTrans", value = code.res)
+    } else {
+      for (var in colnames(datos.originales)) {
+        if(input[[paste0("box", var, contador)]]) {
+          rep.vars <- c(rep.vars, paste0(
+            var, ":", input[[paste0("sel", var, contador)]]))
+          if(input[[paste0("sel", var, contador)]] == "categorico" &
+             class(datos.originales[, var]) %in% c("numeric","integer")) {
+            code.res <- paste0(code.res, code.trans(var, "categorico"), "\n")
+          }
+          if(input[[paste0("sel", var, contador)]] == "numerico" &
+             !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
+            code.res <- paste0(code.res, code.trans(var, "numerico"), "\n")
+          }
+          if(input[[paste0("sel", var, contador)]] == "disyuntivo") {
+            code.res <- paste0(code.res, code.trans(var, "disyuntivo"), "\n")
+          }
+        } else {
+          code.res <- paste0(code.res, code.desactivar(var), "\n")
         }
-        if(input[[paste0("sel", var, contador)]] == "numerico" &
-           !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
-          code.res <- paste0(code.res, code.trans(var, "numerico"), "\n")
-        }
-        if(input[[paste0("sel", var, contador)]] == "disyuntivo") {
-          code.res <- paste0(code.res, code.trans(var, "disyuntivo"), "\n")
-        }
-      } else {
-        code.res <- paste0(code.res, code.desactivar.aux(var), "\n")
       }
+      
+      shinyAce::updateAceEditor(session, "fieldCodeTrans", value = code.res)
     }
     
+    eval(parse(text = code.res))
     nombre.datos <<- paste0(nombre.datos, paste(rep.vars, collapse = "."))
     datos.reporte[[nombre.datos]] <<- datos
     init.replist(nombre.datos)
-    createLog(nombre.datos, "basico", "reptransformar", 
-              paste0(code.res, "\nstr(datos)"))
-    isolate(eval(parse(text = code.res)))
-    updateAceEditor(session, "fieldCodeTrans", value = code.res)
+    createLogBasico(nombre.datos, "Transformacion de los Datos", "str(datos)")
+    updateSelects(datos)
     updateData$datos <- datos
+    updateMenu(datos)
   })
   
   ###################################  Update  ################################
@@ -154,231 +160,77 @@ shinyServer(function(input, output, session) {
   #' @return functions
   #' @export
   #'
-  observeEvent(input$idioma, {
+  shiny::observeEvent(input$idioma, {
+    datos <- shiny::isolate(updateData$datos)
     updateLabelInput(
       session, 
       c("idioma", "selidioma", "data", "basico", "resumen", "normalidad",
         "dispersion", "distribucion", "correlacion", "acp", "jerarquico",
-        "kmedias", "reporte", "acercade", "cargar", "trans", "resumen", 
+        "kmedias", "reporte", "acercade", "cargar", "trans", "resumen", "info",
         "resumenvar", "normalidad", "plotnormal", "numericas", "categoricas", 
         "resultados", "individuos", "variables", "sobreposicion", "ayudacp", 
-        "vee", "cci", "ccv", "cvc", "cp1", "cp2", "inercia", "dendograma", 
+        "vee", "cci", "ccv", "cvc", "cp", "inercia", "dendograma", "fisher",
         "mapa", "horizontal", "vertical", "radar", "interpretacioncat", 
-        "jambu", "tituloreporte", "codreporte",  "salida", "copyright", "info",
+        "jambu", "tituloreporte", "codreporte",  "salida", "copyright", 
         "version", "opciones", "ejecutar", "selcolor", "selcolores", "selejes",
         "cargarchivo", "subir", "header", "Rownames", "separador", "puntocoma",
         "coma", "tab", "punto", "separadordec", "eliminana", "centrar", "si", 
         "no", "descargar", "aplicar", "agregarcluster", "selvar", "selmetodo",
-        "seltipo", "cantcluster", "algoritmo", "nstart", "niter", "numerodim",
-        "cosind", "cosvar", "titulo", "nombre", "codigo", "metododist", 
-        "kiter", "buscar", "nodata", "anterior", "siguiente", "primero", 
-        "ultimo", "numerico", "categorico", "codedist", "codecentros", 
-        "codehoriz", "codevert", "coderadar", "codejambu", "inercia",
-        "inerciainter", "inerciaintra", "todos", "fisher", "asimetria", 
-        "selvars")
+        "seltipo", "cantcluster", "numcluster", "algoritmo", "nstart", "niter",
+        "numerodim", "cosind", "cosvar", "titulo", "nombre", "codigo", "kiter",
+        "funciones", "metododist", "buscar", "nodata", "anterior", "selvars",
+        "siguiente", "primero", "ultimo", "numerico", "categorico", "codedist",
+        "codecentros", "codehoriz", "codevert", "coderadar", "codejambu", 
+        "inercia", "inerciainter", "inerciaintra", "todos", "asimetria", 
+        "metcluster", "nocentrar", "eliminar", "imputar", "jambu", "sil")
     )
     
-    updateinitSelects("selHoriz", 1:input$cant.kmeans.cluster)
+    updateinitSelects("selHoriz", 1:input$cant.cluster)
     updateinitSelects("sel.Khoriz", 1:input$cant.kmeans.cluster)
     updateinitSelects("selVert", colnames(var.numericas(datos)))
     updateinitSelects("sel.Kvert", colnames(var.numericas(datos)))
-    updatePlot$pca.cvc <- code.pca.cvp(input$cvc.metodo, tr("cvc"))
-    updatePlot$normal <- default.normal(
-      "datos", input$sel.normal, input$col.normal, tr("curvanormal"))
-    updatePlot$dya.cat <- def.code.cat(
-      variable = input$sel.distribucion.cat,
-      titulox = tr("cantidadcasos"), tituloy = tr("categorias"))
-    updatePlot$calc.normal <- default.calc.normal(
-      labelsi = tr("positivo"), labelno = tr("negativo"), 
-      labelsin = tr("sinasimetria"))
-    updatePlot$jambu <- def.code.jambu(
-      k = input$iteracionesK, tituloy = tr("inerciainter"))
   })
   
-  #' Update on Data
-  #' @author Diego
-  #' @return functions
-  #' @export
-  #'
-  observeEvent(updateData$datos, {
-    datos <<- updateData$datos
-    updateMenu(datos)
-    tryCatch({
-      isolate(eval(parse(text = modelo.cor())))
-      updateData$cor.modelo <- correlacion
-      output$txtcor <- renderPrint(print(correlacion))
-      updateSelects(datos)
-      nmax <- calc.maxK(datos)
-      updateSliderInput(session, "iteracionesK", max = nmax, value = nmax)
-    }, error = function(e) {
-      print(paste0("ERROR: ", e))
-      return(datos <- NULL)
-    })
-    
-    output$contents = DT::renderDataTable(mostrarData())
-    close.menu(is.null(datos))
-  })
-  
-  #' Update on PCA
-  #' @author Diego
-  #' @return functions
-  #' @export
-  #'
-  observeEvent(c(updateData$datos, input$switch.scale, input$slider.npc), {
+  output$contents = DT::renderDataTable({
     datos <- updateData$datos
-    tryCatch({
-      if(!is.null(datos)) {
-        codigo <- def.pca.model(
-          scale.unit = input$switch.scale, npc = input$slider.npc)
-        updateAceEditor(session, "fieldCodePCAModelo", value = codigo)
-        isolate(eval(parse(text = codigo)))
-        updateData$pca.modelo <- pca.modelo
-        output$txtpca <- renderPrint(print(unclass(pca.modelo)))
-        updateSliderTextInput(session, "slider.ejes", choices =
-                                c(1:input$slider.npc), selected = c(1,2))
-        createLog(
-          nombre.datos, "acp", "vacio", codigo, params = 
-            paste("centrar=", input$switch.scale, 
-                  "repdim=", input$slider.npc, 
-                  collapse = "."))
-      }
-    }, error = function(e) {
-      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-      return(NULL)
-    })
-  })
-  
-  #' Actualización del Modelo Clusterización Jerarquica
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  observeEvent(c(updateData$datos, input$cant.cluster, input$sel.dist.method,
-                 input$sel.hc.method), {
-    codigo <- def.model(
-      data = "datos", cant = input$cant.cluster,
-      dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
-    tryCatch ({
-      if(!is.null(datos) && !is.null(input$cant.cluster)){
-        isolate(eval(parse(text = codigo)))
-        updateData$hc.modelo <- hc.modelo
-        updateAceEditor(session, "fieldCodeModelo", value = codigo)
-        output$txthc <- renderPrint(print(unclass(hc.modelo)))
-        output$txtcentros <- renderPrint(print(unclass(centros)))
-        createLog(
-          nombre.datos, "rephc", "vacio", codigo, params = 
-            paste("Clusters=", input$cant.cluster, 
-                  "distancia=", input$sel.dist.method,
-                  "metodo=", input$sel.hc.method, collapse = "."))
-      }
-    }, error = function(e) {
-      print(paste0("ERROR: ", e))
-      return(NULL)
-    })
-
-    if(!is.null(datos) && !is.null(input$cant.cluster)) {
-      nuevos.colores <- sapply(1:input$cant.cluster, function(i)
-        paste0("'", input[[paste0("hcColor", i)]], "'"))
-      color <- ifelse(input$selHoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$selHoriz)])
-      updatePlot$diag <- diagrama(input$cant.cluster, nuevos.colores)
-      updatePlot$mapa <- cluster.mapa(nuevos.colores)
-      updatePlot$horiz <- cluster.horiz(input$selHoriz, nuevos.colores, color)
-      updatePlot$vert <- cluster.vert(input$selVert, nuevos.colores)
-      updatePlot$radar <- cluster.radar(nuevos.colores)
-      updatePlot$cat <- cluster.cat(input$selBar, nuevos.colores)
-      updateAceEditor(session, "fieldCodeDendo", value = updatePlot$diag)
-      updateAceEditor(session, "fieldCodeMapa", value = updatePlot$mapa)
-      updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
-      updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
-      updateAceEditor(session, "fieldCodeRadar", value = updatePlot$radar)
-      updateAceEditor(session, "fieldCodeBar", value = updatePlot$cat)
-    }
-  })
-  
-  #' Actualizacion del Modelo K-medias
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  observeEvent(c(updateData$datos, input$cant.kmeans.cluster,
-                 input$num.iter, input$num.nstart, input$sel.algoritmo), {
-    tryCatch ({
-      codigo <- def.k.model(
-        data = "datos", cant = input$cant.kmeans.cluster,  
-        iter.max = input$num.iter, nstart = input$num.nstart,
-        algorithm = input$sel.algoritmo)
-      isolate(eval(parse(text = codigo)))
-      updateData$k.modelo <- k.modelo
-      updateAceEditor(session, "fieldCodeKModelo", value = codigo)
-      output$txtk <- renderPrint(print(unclass(k.modelo)))
-      createLog(
-        nombre.datos, "kmedias", "vacio", codigo, 
-        params = paste(
-          "Clusters=", input$cant.kmeans.cluster, 
-          "iter=", input$num.iter, "nstart=", input$num.nstart,
-          "algoritmo=", input$sel.algoritmo, collapse = "."))
-    }, error = function(e) {
-      return(NULL)
-    })
-
-    if(!is.null(datos) && !is.null(input$cant.kmeans.cluster)) {
-      nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i)
-        paste0("'", input[[paste0("kColor", i)]], "'"))
-      color <- ifelse(input$sel.Khoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$sel.Khoriz)])
-      updatePlot$kmapa <- cluster.mapa(nuevos.colores, F)
-      updatePlot$khoriz <- cluster.horiz(
-        input$sel.Khoriz, nuevos.colores, color, F)
-      updatePlot$kvert <- cluster.vert(input$sel.Kvert, nuevos.colores, F)
-      updatePlot$kradar <- cluster.radar(nuevos.colores, F)
-      updatePlot$kcat <- cluster.cat(input$sel.Kbar, nuevos.colores, F)
-      updateAceEditor(session, "fieldCodeKmapa", value = updatePlot$kmapa)
-      updateAceEditor(session, "fieldCodeKhoriz", value = updatePlot$khoriz)
-      updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
-      updateAceEditor(session, "fieldCodeKradar", value = updatePlot$kradar)
-      updateAceEditor(session, "fieldCodeKbar", value = updatePlot$kcat)
-    }
-  })
-
-  #' Update on Table
-  #' @author Diego
-  #' @return functions
-  #' @export
-  #'
-  mostrarData <- function() {
-    if(isolate(input$idioma) == "es") {
+    datos <- head(datos, 100)
+    if(input$idioma == "es") {
       labelNum <- "Numérico"
       labelCat <- "Categórico"
     } else {
       labelNum <- "Numerical"
       labelCat <- "Categorical"
     }
-    nombre.columnas <- c("ID", colnames(datos))
-    tipo.columnas <- sapply(colnames(datos), function(i)
-      ifelse(class(datos[,i]) %in% c("numeric", "integer"),
-             paste0("<span data-id='numerico'>", labelNum, "</span>"), 
-             paste0("<span data-id='categorico'>", labelCat, "</span>")))
-    sketch = htmltools::withTags(table(
-      tableHeader(nombre.columnas),
-      tags$tfoot(
-        tags$tr(tags$th(), lapply(tipo.columnas, function(i) tags$th(HTML(i))))
+    tryCatch({
+      nombre.columnas <- c("ID", colnames(datos))
+      tipo.columnas <- sapply(colnames(datos), function(i)
+        ifelse(class(datos[,i]) %in% c("numeric", "integer"),
+               paste0("<span data-id='numerico'>", labelNum, "</span>"), 
+               paste0("<span data-id='categorico'>", labelCat, "</span>")))
+      sketch = htmltools::withTags(table(
+        tableHeader(nombre.columnas),
+        tags$tfoot(
+          tags$tr(tags$th(), lapply(tipo.columnas, function(i) tags$th(shiny::HTML(i))))
+        )
+      ))
+      DT::datatable(
+        datos, selection = 'none', editable = TRUE,  container = sketch,
+        options = list(dom = 'frtip', scrollY = "40vh")
       )
-    ))
-    DT::datatable(
-      datos, selection = 'none', editable = TRUE,  container = sketch,
-      options = list(dom = 'frtip', scrollY = "40vh")
-    )
-  }
-  output$contents = DT::renderDataTable(NULL, server = T)
+    }, error = function(e) {
+      return(NULL)
+    })
+  }, server = F)
 
-  #' Update on Transform Table
+  #' Update Transform Table
   #' @author Diego
   #' @return functions
   #' @export
   #'
   update.trans <- eventReactive(input$loadButton, {
+    datos <- updateData$datos
     contador <<- contador + 1
+    res <- as.data.frame(NULL)
     if(!is.null(datos) && ncol(datos) > 0) {
       res <-  data.frame(Variables = colnames(datos),
                          Tipo = c(1:ncol(datos)), Activa = c(1:ncol(datos)))
@@ -392,18 +244,14 @@ shinyServer(function(input, output, session) {
                tr("disyuntivo"), '</option> </select>'))
       res$Activa <- sapply(colnames(datos), function(i)
         paste0('<input type="checkbox" id="box', i, contador, '" checked/>'))
-    } else {
-      res <-  as.data.frame(NULL)
-      showNotification(
-        "ERROR: Check Separators", duration = 10, type = "error")
     }
     return(res)
   })
 
-  output$transData = DT::renderDT({
+  output$transData = DT::renderDT({ 
     variables <- tr("variables")
-    tipo <- tr("tipo")
-    activa <- tr("activa")
+    tipo      <- tr("tipo")
+    activa    <- tr("activa")
     sketch = htmltools::withTags(table(
         tags$thead(tags$tr(tags$th(variables), tags$th(tipo), tags$th(activa)))
     ))
@@ -427,17 +275,15 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   output$resumen.completo = DT::renderDataTable({
-    return(obj.resum())
+    datos <- updateData$datos
+    createLogBasico(nombre.datos, "resumen", "summary(datos)")
+    res <- data.frame(unclass(summary(datos)), check.names = FALSE,
+                      stringsAsFactors = FALSE)
+    return(res)
   }, options = list(dom = 'ft', scrollX = TRUE), rownames = F)
 
-  obj.resum <- eventReactive(updateData$datos, {
-    datos <- updateData$datos
-    createLog(nombre.datos, "basico", "resumen", "summary(datos)")
-    data.frame(unclass(summary(datos)), check.names = FALSE,
-               stringsAsFactors = FALSE)
-  })
-
-  output$resumen = renderUI({
+  output$resumen = shiny::renderUI({
+    datos <- shiny::isolate(updateData$datos)
     if(input$sel.resumen %in% colnames(var.numericas(datos))) {
       resumen.numerico(datos, input$sel.resumen)
     } else {
@@ -450,31 +296,19 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  output$plot.normal = renderPlot({
+  output$plot.normal = shiny::renderPlot({
+    datos <- updateData$datos
+    var   <- input$sel.normal
+    color <- input$col.normal
+    cod.normal <- default.normal(var, color, tr("curvanormal"))
     tryCatch({
-      cod.normal <<- updatePlot$normal
-      res <- isolate(eval(parse(text = cod.normal)))
-      updateAceEditor(session, "fieldCodeNormal", value = cod.normal)
-      createLog(nombre.datos, "basico", "normalidad", cod.normal, 
-                params = NULL, vars = input$sel.normal)
-      return(res)
-    }, error = function(e){
-      if(ncol(var.numericas(datos)) <= 0){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
+      grafico <- eval(parse(text = cod.normal))
+      shinyAce::updateAceEditor(session, "fieldCodeNormal", value = cod.normal)
+      createLogBasico(nombre.datos, "normalidad", cod.normal, var)
+      return(grafico)
+    }, error = function(e) {
+      mostrarError(e, n.num = ncol(var.numericas(datos)))
     })
-  })
-
-  observeEvent(input$run.normal, {
-    updatePlot$normal <- input$fieldCodeNormal
-  })
-
-  observeEvent(c(input$sel.normal, input$col.normal), {
-    updatePlot$normal <- default.normal(
-      "datos", input$sel.normal, input$col.normal, tr("curvanormal"))
   })
 
   #' Resumen Test de normalidad
@@ -483,11 +317,14 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   output$calculo.normal = DT::renderDT({
+    datos <- updateData$datos
+    labelpos <- tr("positivo")
+    labelneg <- tr("negativo")
+    labelsin <- tr("sinasimetria")
+    codigo <- default.calc.normal(labelpos, labelneg, labelsin)
     tryCatch({
-      datos <- updateData$datos
-      codigo <- updatePlot$calc.normal
-      res <- isolate(eval(parse(text = codigo)))
-      updateAceEditor(session, "fieldCalcNormal", value = codigo)
+      res <- shiny::isolate(eval(parse(text = codigo)))
+      shinyAce::updateAceEditor(session, "fieldCalcNormal", value = codigo)
       fisher <- tr("fisher")
       asimetria <- tr("asimetria")
       sketch = htmltools::withTags(table(
@@ -498,13 +335,8 @@ shinyServer(function(input, output, session) {
         options = list(dom = 'frtip', scrollY = "60vh")
       )
     }, error = function(e) {
-      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-      return(NULL)
+      mostrarError(e)
     })
-  })
-
-  observeEvent(input$run.calc.normal, {
-    updatePlot$calc.normal <- input$fieldCalcNormal
   })
 
   #' Gráfico de Dispersión
@@ -512,48 +344,47 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  output$plot.disp = renderPlot({
+  output$plot.disp = shiny::renderPlot({
+    datos <- updateData$datos
+    var   <- input$select.var
+    color <- input$col.disp
+    cod.disp <- default.disp(var, color)
     tryCatch({
-      cod.disp <<- updatePlot$disp
-      updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
-      if(!is.null(cod.disp) && cod.disp != "") {
-        createLog(
-          nombre.datos, "basico", "dispersion", cod.disp, params = NULL,
-          vars = paste(input$select.var, collapse = " "))
+      grafico.disp <<- eval(parse(text = cod.disp))
+      shinyAce::updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
+      if(cod.disp != "") {
+        createLogBasico(
+          nombre.datos, "dispersion", cod.disp, paste(var, collapse = "-"))
       }
-      return(isolate(eval(parse(text = cod.disp))))
+      return(grafico.disp)
     }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-           return(NULL)
-      }
+      mostrarError(e, n.num = ncol(var.numericas(datos)))
     })
   })
   
-  output$plot.disp.zoom <- renderPlot({
+  output$plot.disp.zoom <- shiny::renderPlot({
     tryCatch({
-      cod.disp <<- updatePlot$disp
-      res <- isolate(eval(parse(text = cod.disp)))
-      res <- res + coord_cartesian(xlim = disp.ranges$x,
-                                   ylim = disp.ranges$y, expand = FALSE)
-      return(res)
+      grafico.disp + coord_cartesian(
+        xlim = disp.ranges$x, ylim = disp.ranges$y, expand = FALSE)
     }, error = function(e) {
       return(NULL)
     })
   })
   
   output$mostrar.disp.zoom = DT::renderDataTable({
+    datos <- shiny::isolate(updateData$datos)
+    var   <- shiny::isolate(input$select.var)
     tryCatch({
-      return(brushedPoints(datos[, input$select.var], input$zoom.disp))
+      DT::datatable(
+        brushedPoints(datos[, var], input$zoom.disp),
+        options = list(dom = 't', scrollX = TRUE, scrollY = "20vh",
+                       pageLength = nrow(datos)))
     }, error = function(e) {
       return(NULL)
     })
-  }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh",
-                    pageLength = nrow(datos)))
+  })
 
-  observe({
+  shiny::observe({
     brush <- input$zoom.disp
     if (!is.null(brush)) {
       disp.ranges$x <- c(brush$xmin, brush$xmax)
@@ -564,60 +395,35 @@ shinyServer(function(input, output, session) {
       disp.ranges$y <- NULL
     }
   })
-
-  observeEvent(input$run.disp, {
-    updatePlot$disp <- input$fieldCodeDisp
-  })
-
-  observeEvent(c(input$select.var, input$col.disp), {
-    if(length(input$select.var) < 2) {
-      updatePlot$disp <- ""
-    } else {
-      updatePlot$disp <- default.disp(
-        data = "datos", vars = input$select.var, color = input$col.disp)
-    }
-  })
   
   #' Gráfico de Distribuciones (Númericas)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plot.num = renderPlot({
+  output$plot.num = shiny::renderPlot({
+    datos <- updateData$datos
+    var   <- input$sel.distribucion.num
+    color <- input$col.dist  
+    cod.dya.num <- def.code.num(var, color)
+    shinyAce::updateAceEditor(session, "fieldCodeNum", value = cod.dya.num)
     tryCatch({
-      cod.dya.num  <<- updatePlot$dya.num
-      res <- isolate(eval(parse(text = cod.dya.num)))
-      updateAceEditor(session, "fieldCodeNum", value = cod.dya.num)
-      createLog(nombre.datos, "basico", "distribucion", cod.dya.num,  
-                params = NULL, vars = input$sel.distribucion.num)
-      return(res)
+      grafico <- eval(parse(text = cod.dya.num))
+      createLogBasico(nombre.datos, "distribucion", cod.dya.num, var)
+      return(grafico)
     }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 0){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
+      mostrarError(e, n.num = ncol(var.numericas(datos)))
     })
   })
   
-  observeEvent(input$run.dya.num, {
-    updatePlot$dya.num <- input$fieldCodeNum
-  })
-  
-  observeEvent(c(input$sel.distribucion.num, input$col.dist), {
-    updatePlot$dya.num <- def.code.num(
-      data = "datos", color = paste0("'", input$col.dist, "'"), 
-      variable = paste0("'", input$sel.distribucion.num, "'"))
-  })
-  
   output$mostrar.atipicos = DT::renderDataTable({
-    atipicos <- boxplot.stats(datos[, input$sel.distribucion.num])
-    datos <- datos[datos[, input$sel.distribucion.num] %in% atipicos$out,
-                   input$sel.distribucion.num, drop = F]
-    datos <- datos[order(datos[, input$sel.distribucion.num]), , drop = F]
-    datatable(datos, options = list(dom = 't', scrollX = TRUE, scrollY = "28vh",
-                                    pageLength = nrow(datos))) %>%
+    datos <- updateData$datos
+    var   <- input$sel.distribucion.num
+    atipicos <- boxplot.stats(datos[, var])
+    datos <- datos[datos[, var] %in% atipicos$out, var, drop = F]
+    datos <- datos[order(datos[, var]), , drop = F]
+    DT::datatable(datos, options = list(
+      dom = 't', scrollX = TRUE, scrollY = "28vh", pageLength = nrow(datos))) %>%
       formatStyle(1, color = "white", backgroundColor = "#CBB051", target = "row")
   })
   
@@ -626,55 +432,18 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  output$plot.cat = renderPlot({
+  output$plot.cat = shiny::renderPlot({
+    datos <- updateData$datos
+    var   <- input$sel.distribucion.cat
+    cod.dya.cat <- def.code.cat(var)
+    shinyAce::updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
     tryCatch({
-      cod.dya.cat  <<- updatePlot$dya.cat
-      res <- isolate(eval(parse(text = cod.dya.cat)))
-      updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
-      var <- isolate(input$sel.distribucion.cat)
-      if(str_detect(var, pattern = "[[:digit:]]\\.(HC|CJ)") & 
-         is.null(datos.originales[[var]])) {
-        code <- paste0(
-          "datos[['", var, "']] <- as.factor(paste0('HC', hc.modelo$clusters))",
-          "\n", cod.dya.cat)
-        createLog(
-          nombre.datos, "rephc", "Cluster", code,  
-          params = paste(
-            "Clusters=", isolate(input$cant.cluster), "distancia=", 
-            isolate(input$sel.dist.method), "metodo=", 
-            isolate(input$sel.hc.method), collapse = "."))
-      } else if(str_detect(var, pattern = "[[:digit:]]\\.(Kmedias|Kmeans)") &
-                is.null(datos.originales[[var]])) {
-        code <- paste0(
-          "datos[['", var, "']] <- as.factor(paste0('K', k.modelo$cluster))\n",
-          cod.dya.cat)
-        createLog(
-          nombre.datos, "kmedias", "Cluster", code, params = paste(
-            "Clusters=", isolate(input$cant.kmeans.cluster), "iter=", 
-            isolate(input$num.iter), "nstart=", isolate(input$num.nstart), 
-            "algoritmo=", isolate(input$sel.algoritmo), collapse = "."))
-      } else {
-        createLog(nombre.datos, "basico", "distribucion", cod.dya.cat,  
-                  params = NULL, vars = input$sel.distribucion.cat)
-      }
-      return(res)
+      grafico <- eval(parse(text = cod.dya.cat))
+      createLogBasico(nombre.datos, "distribucion", cod.dya.cat, var)
+      return(grafico)
     }, error = function(e) {
-      if(ncol(var.categoricas(datos)) <= 0){
-        error.variables(isolate(input$idioma), F)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
+      mostrarError(e, n.cat = ncol(var.categoricas(datos)))
     })
-  })
-  
-  observeEvent(input$run.dya.cat, {
-    updatePlot$dya.cat <- input$fieldCodeCat
-  })
-  
-  observeEvent(input$sel.distribucion.cat, {
-    updatePlot$dya.cat <- def.code.cat(
-      variable = input$sel.distribucion.cat)
   })
   
   #' Gráfico de Correlaciones
@@ -682,73 +451,182 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  output$plot.cor = renderPlot({
+  output$plot.cor = shiny::renderPlot({
+    datos       <- updateData$datos
+    metodo      <- input$cor.metodo
+    tipo        <- input$cor.tipo
+    cod.cor     <- correlaciones(metodo, tipo)
+    shinyAce::updateAceEditor(session, "fieldCodeCor", value = cod.cor)
     tryCatch({
-      updateData$cor.modelo
-      cod.cor <- updatePlot$cor
-      res <- isolate(eval(parse(text = cod.cor)))
-      updateAceEditor(session, "fieldCodeCor", value = cod.cor)
-      createLog(nombre.datos, "basico", "repcor", cod.cor)
-      return(res)
+      output$txtcor <- shiny::renderPrint(cor(var.numericas(datos)))
+      grafico <- shiny::isolate(eval(parse(text = cod.cor)))
+      createLogBasico(nombre.datos, "correlacion", cod.cor)
+      return(grafico)
     }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
+      mostrarError(e, n.num = ncol(var.numericas(datos)))
     })
   })
   
-  observeEvent(input$run.code.cor, {
-    updatePlot$cor <- input$fieldCodeCor
+  #' Update PCA
+  #' @author Diego
+  #' @return functions
+  #' @export
+  #'
+  shiny::observeEvent(c(updateData$datos, input$run.pca), {
+    datos <- updateData$datos
+    
+    centrado    <- shiny::isolate(input$switch.scale)
+    dimensiones <- shiny::isolate(input$slider.npc)
+    ejes        <- paste(shiny::isolate(input$slider.ejes), collapse = ", ")
+    ind.cos     <- shiny::isolate(input$ind.cos) * 0.01
+    ind.col     <- shiny::isolate(input$col.pca.ind)
+    var.cos     <- shiny::isolate(input$var.cos) * 0.01
+    var.col     <- shiny::isolate(input$col.pca.var) 
+    
+    codigo <- def.pca.model(scale.unit = centrado, npc = dimensiones)
+    rep.acp <<- c(centrado, dimensiones)
+    
+    shinyAce::updateAceEditor(session, "fieldCodePCAModelo", value = codigo)
+    
+    if(!is.null(datos)) {
+      eval(parse(text = codigo))
+      if(!is.null(pca.modelo)) {
+        output$txtpca <- shiny::renderPrint(unclass(pca.modelo))
+        createLogACP(nombre.datos, codigo, rep.acp, "modelo")
+        updateSelectInput(session, "pc1.dim", choices = 1:dimensiones)
+        
+        # Gráfico PCA Individuos
+        output$plot.ind = shiny::renderPlot({
+          codigo <- pca.individuos(ind.cos, ind.col, ejes)
+          shinyAce::updateAceEditor(session, "fieldCodeInd", value = codigo)
+          tryCatch({
+            grafico.ind <<- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp,
+                         paste0("repcaind=ejes:(", ejes, ");cosind:", ind.cos))
+            return(grafico.ind)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico PCA Variables
+        output$plot.var = shiny::renderPlot({
+          codigo <- pca.variables(var.cos, var.col, ejes)
+          shinyAce::updateAceEditor(session, "fieldCodeVar", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp,
+                         paste0("repcavar=ejes:(", ejes, ");cosvar:", var.cos))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico PCA Sobreposición
+        output$plot.biplot = shiny::renderPlot({
+          codigo <- pca.sobreposicion(ind.cos, var.cos, ind.col, var.col, ejes)
+          shinyAce::updateAceEditor(session, "fieldCodeBi", value = codigo)
+          tryCatch({
+            grafico.bi <<- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, paste0(
+              "repcabi=ejes:(", ejes, ");cosvar:", var.cos, ";cosind:", ind.cos))
+            return(grafico.bi)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de PCA (Varianza Explicada para cada Eje)
+        output$plotVEE = shiny::renderPlot({
+          codigo <- code.pca.vee(tr("vee"), tr("dimensiones"), tr("porcvee"))
+          shinyAce::updateAceEditor(session, "fieldCodeVEE", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, "vee")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de PCA (Cosenos Cuadrados de los individuos)
+        output$plotCCI = shiny::renderPlot({
+          codigo <- code.pca.cci(tr("cci"), tr("calidadcos"))
+          shinyAce::updateAceEditor(session, "fieldCodeCCI", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, "cci")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de PCA (Cosenos Cuadrados de las Variables)
+        output$plotCCV = shiny::renderPlot({
+          codigo <- code.pca.ccv(tr("ccv"), tr("calidadcos"))
+          shinyAce::updateAceEditor(session, "fieldCodeCCV", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, "ccv")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de PCA (Correlación Variables con los Componenetes)
+        output$plotCVC = shiny::renderPlot({
+          codigo <- code.pca.cvp(input$cvc.metodo, tr("cvc"))
+          shinyAce::updateAceEditor(session, "fieldCodeCVC", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, "cvc")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de PCA (Contribución de las variables de la Dimensión)
+        output$plotPC1 = shiny::renderPlot({
+          dim <- input$pc1.dim
+          codigo <- code.pca.pc1(tr("cp"), tr("contribucion"), dim)
+          shinyAce::updateAceEditor(session, "fieldCodePC1", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogACP(nombre.datos, codigo, rep.acp, paste0("cp:", dim))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        updateData$pca.modelo <- pca.modelo
+      }
+    }
   })
   
-  observeEvent(c(input$cor.metodo, input$cor.tipo), {
-    updatePlot$cor <- correlaciones(
-      metodo = input$cor.metodo, tipo = input$cor.tipo)
+  observeEvent(input$slider.npc, {
+    updateSliderInput(session, "slider.ejes", max = input$slider.npc, 
+                      value = c(1, 2))
   })
 
-  #' Gráfico de PCA (Individuos)
+  #' Zoom PCA (Individuos)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-
-  output$plot.ind = renderPlot({
+  output$plot.ind.zoom <- shiny::renderPlot({
     tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      cod.pca.ind <<- updatePlot$pca.ind
-      res <- isolate(eval(parse(text = cod.pca.ind)))
-      updateAceEditor(session, "fieldCodeInd", value = cod.pca.ind)
-      createLog(
-        nombre.datos, "acp", "repcaind", cod.pca.ind, 
-        params = paste("centrar=", input$switch.scale, 
-                       "repdim=", input$slider.npc, collapse = "."),
-        vars = paste("coseno=", input$ind.cos, "ejes=", 
-                     paste(input$slider.ejes, collapse = " "), collapse = " "))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      ejex <- ind.ranges$x
+      ejey <- ind.ranges$y
+      if(is.null(ejex) & is.null(ejey)){
         return(NULL)
-      }
-    })
-   })
-
-   output$plot.ind.zoom <- renderPlot({
-     tryCatch({
-       ejex <- ind.ranges$x
-       ejey <- ind.ranges$y
-       if(is.null(ejex) & is.null(ejey)){
-         return(NULL)
-       } else {
-         cod.ind <<- updatePlot$pca.ind
-         res <- isolate(eval(parse(text = cod.ind)))
-         res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
-         return(res)
+      } else {
+        grafico.ind + 
+          coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
        }
      }, error = function(e) {
        return(NULL)
@@ -757,20 +635,22 @@ shinyServer(function(input, output, session) {
 
    output$mostrar.ind.zoom = DT::renderDataTable({
      tryCatch({
+       pca.modelo  <- shiny::isolate(updateData$pca.modelo)
        dimensiones <- as.data.frame(pca.modelo$ind$coord)
-       return(
-         brushedPoints(
-           df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.ind,
-           xvar = names(dimensiones)[input$slider.ejes[1]],
-           yvar = names(dimensiones)[input$slider.ejes[2]])
-       )
+       ejes <- shiny::isolate(input$slider.ejes)
+       res <- brushedPoints(
+         df = dimensiones[, c(ejes)], brush = input$zoom.ind,
+         xvar = names(dimensiones)[ejes[1]],
+         yvar = names(dimensiones)[ejes[2]])
+       return(DT::datatable(res, options = list(
+         dom = 't', scrollX = TRUE, scrollY = "20vh",
+         pageLength = nrow(dimensiones))))
      }, error = function(e) {
        return(NULL)
      })
-   }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh",
-                     pageLength = nrow(datos)))
+   })
 
-  observe({
+  shiny::observe({
     brush <- input$zoom.ind
     if (!is.null(brush)) {
       ind.ranges$x <- c(brush$xmin, brush$xmax)
@@ -781,95 +661,20 @@ shinyServer(function(input, output, session) {
     }
   })
 
-  observeEvent(input$run.pcaInd, {
-    updatePlot$pca.ind <- input$fieldCodeInd
-  })
-
-  observeEvent(c(input$col.pca.ind, input$ind.cos, input$slider.ejes), {
-    updatePlot$pca.ind <- pca.individuos(
-      ind.cos = input$ind.cos * 0.01, color = input$col.pca.ind, 
-      ejes = input$slider.ejes)
-  })
-
-  #' Gráfico de PCA (Variables)
+  #' Zoom PCA (Sobreposición)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plot.var = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      cod.pca.var <<- updatePlot$pca.var
-      res <- isolate(eval(parse(text = cod.pca.var)))
-      updateAceEditor(session, "fieldCodeVar", value = cod.pca.var)
-      createLog(
-        nombre.datos, "acp", "repcavar", cod.pca.var, 
-        params = paste("centrar=", input$switch.scale, "repdim=", 
-                       input$slider.npc), 
-        vars = paste("coseno=", input$var.cos, "ejes=", 
-                     paste(input$slider.ejes, collapse = " "),
-                     collapse = " "))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.pcaVar, {
-    updatePlot$pca.var <- input$fieldCodeVar
-  })
-
-  observeEvent(c(input$var.cos, input$col.pca.var, input$slider.ejes), {
-    updatePlot$pca.var <- pca.variables(
-      var.cos = input$var.cos * 0.01, color = input$col.pca.var,
-      ejes = input$slider.ejes)
-  })
-
-  #' Gráfico de PCA (Sobreposición)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.biplot = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      cod.pca.bi <<- updatePlot$pca.bi
-      res <- isolate(eval(parse(text = cod.pca.bi)))
-      updateAceEditor(session, "fieldCodeBi", value = cod.pca.bi)
-      createLog(
-        nombre.datos, "acp", "repcabi", cod.pca.bi, 
-        params = paste("centrar=", input$switch.scale, "repdim=", 
-                       input$slider.npc), 
-        vars = paste("repcosind=", input$ind.cos, "repcosvar=", input$var.cos,
-                     "ejes=", paste(input$slider.ejes, collapse = " "),
-                     collapse = " "))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-  
-  output$plot.bi.zoom <- renderPlot({
+  output$plot.bi.zoom <- shiny::renderPlot({
     tryCatch({
       ejex <- bi.ranges$x
       ejey <- bi.ranges$y
       if(is.null(ejex) & is.null(ejey)){
         return(NULL)
       } else {
-        cod.bi <<- updatePlot$pca.bi
-        res <- isolate(eval(parse(text = cod.bi)))
-        res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
-        return(res)
+        grafico.bi + 
+          coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
       }
     }, error = function(e) {
       return(NULL)
@@ -878,19 +683,22 @@ shinyServer(function(input, output, session) {
   
   output$mostrar.bi.zoom = DT::renderDataTable({
     tryCatch({
+      pca.modelo <- shiny::isolate(updateData$pca.modelo)
       dimensiones <- as.data.frame(pca.modelo$ind$coord)
-      return(brushedPoints(
+      ejes <- shiny::isolate(input$slider.ejes)
+      res <- brushedPoints(
         df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.bi,
         xvar = names(dimensiones)[input$slider.ejes[1]],
         yvar = names(dimensiones)[input$slider.ejes[2]])
-      )
+      return(DT::datatable(res, options = list(
+        dom = 't', scrollX = TRUE, scrollY = "20vh",
+        pageLength = nrow(dimensiones))))
     }, error = function(e) {
       return(NULL)
     })
-  }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", 
-                    pageLength = nrow(datos)))
+  })
 
-  observe({
+  shiny::observe({
     brush <- input$zoom.bi
     if (!is.null(brush)) {
       bi.ranges$x <- c(brush$xmin, brush$xmax)
@@ -901,260 +709,140 @@ shinyServer(function(input, output, session) {
       bi.ranges$y <- NULL
     }
   })
-
-  observeEvent(input$run.pcaBi, {
-    updatePlot$pca.bi <- input$fieldCodeBi
-  })
-
-  observeEvent(c(input$col.pca.ind, input$ind.cos, input$var.cos,
-                 input$col.pca.var, input$slider.ejes), {
-    updatePlot$pca.bi <- pca.sobreposicion(
-      ind.cos = input$ind.cos * 0.01, var.cos = input$var.cos * 0.01,
-      col.ind = input$col.pca.ind, col.var = input$col.pca.var,
-      ejes = input$slider.ejes)
-  })
-
-  #' Gráfico de PCA (Varianza Explicada para cada Eje)
+  
+  #' Actualización del Modelo Clusterización Jerarquica
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plotVEE = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- code.pca.vee(tr("vee"), tr("dimensiones"), tr("porcvee"))
-      updateAceEditor(session, "fieldCodeVEE", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(
-        nombre.datos, "acp", "vee", codigo, 
-        params = paste("centrar=", input$switch.scale, "dimensiones", 
-                       input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
+  shiny::observeEvent(c(updateData$datos, input$run.hc), {
+    datos       <- updateData$datos
+    cant        <- shiny::isolate(input$cant.cluster)
+    dist.method <- shiny::isolate(input$sel.dist.method)
+    hc.method   <- shiny::isolate(input$sel.hc.method)
+    colores     <- sapply(1:cant, function(i)
+      paste0("'", input[[paste0("hcColor", i)]], "'"))
+    
+    codigo <- def.model(cant, dist.method, hc.method)
+    shinyAce::updateAceEditor(session, "fieldCodeModelo", value = codigo)
+    
+    tryCatch ({
+      if(!is.null(datos) && !is.null(cant)) {
+        eval(parse(text = codigo))
+        updateData$hc.modelo <- hc.modelo
+        
+        updateinitSelects("selHoriz", 1:cant)
+        output$txthc <- shiny::renderPrint(print(unclass(hc.modelo)))
+        output$txtcentros <- shiny::renderPrint(print(unclass(centros)))
+        rep.hc <- c(cant, dist.method, hc.method)
+        createLogCJ(nombre.datos, codigo, rep.hc, "modelo")
+        
+        output$inercia.cj = shiny::renderUI({
+          panel.inercia(hc.modelo$modelo, as.numeric(cant), datos)
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Diagrama)
+        output$plot.diag = shiny::renderPlot({
+          codigo <- diagrama(colores)
+          shinyAce::updateAceEditor(session, "fieldCodeDendo", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, "dendograma")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Mapa)
+        output$plot.mapa = shiny::renderPlot({
+          codigo     <- cluster.mapa(colores)
+          pca.modelo <- shiny::isolate(updateData$pca.modelo)
+          shinyAce::updateAceEditor(session, "fieldCodeMapa",  value = codigo)
+          tryCatch({
+            grafico.hc.mapa <<- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, "mapa")
+            return(grafico.hc.mapa)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Horizontal)
+        output$plot.horiz = shiny::renderPlot({
+          var    <- input$selHoriz
+          codigo <- cluster.horiz(var, colores)
+          shinyAce::updateAceEditor(session, "fieldCodeHoriz", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, paste0("horizontal:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Vertical)
+        output$plot.vert = shiny::renderPlot({
+          var    <- input$selVert
+          codigo <- cluster.vert(var, colores)
+          shinyAce::updateAceEditor(session, "fieldCodeVert",  value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, paste0("vertical:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Radar)
+        output$plot.radar = shiny::renderPlot({
+          codigo <- cluster.radar(colores)
+          shinyAce::updateAceEditor(session, "fieldCodeRadar", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, "radar")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de Clusterización Jerarquica (Catégoricas)
+        output$plot.bar.cat = shiny::renderPlot({
+          var    <- input$selBar
+          codigo <- cluster.cat(var, colores)
+          shinyAce::updateAceEditor(session, "fieldCodeBar", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogCJ(nombre.datos, codigo, rep.hc, paste0("categoricas:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, n.cat = ncol(var.categoricas(datos)))
+          })
+        })
       }
+    }, error = function(e) {
+      mostrarError(e)
     })
   })
 
-  #' Gráfico de PCA (Cosenos Cuadrados de los individuos)
-  #' @author Diego
-  #' @return plot
-  #' @export
-
-  output$plotCCI = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- code.pca.cci(tr("cci"), tr("calidadcos"))
-      updateAceEditor(session, "fieldCodeCCI", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(nombre.datos, "acp", "cci", codigo,  
-                params = paste("centrar=", input$switch.scale, "dimensiones", 
-                               input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  #' Gráfico de PCA (Cosenos Cuadrados de las Variables)
+  #' Zoom de Clusterización Jerarquica (Mapa)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plotCCV = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- code.pca.ccv(tr("ccv"), tr("calidadcos"))
-      updateAceEditor(session, "fieldCodeCCV", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(nombre.datos, "acp", "ccv", codigo,  
-                params = paste("centrar=", input$switch.scale, "dimensiones", 
-                               input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  #' Gráfico de PCA (Correlación Variables con los Componenetes)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plotCVC = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- updatePlot$pca.cvc
-      updateAceEditor(session, "fieldCodeCVC", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(nombre.datos, "acp", "cvc", codigo,  
-                params = paste("centrar=", input$switch.scale, "dimensiones", 
-                               input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$cvc.metodo, {
-    updatePlot$pca.cvc <- code.pca.cvp(input$cvc.metodo, tr("cvc"))
-  })
-
-  #' Gráfico de PCA (Contribución de las variables de la Dimensión 1)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plotPC1 = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- code.pca.pc1(tr("cp1"), tr("contribucion"))
-      updateAceEditor(session, "fieldCodePC1", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(nombre.datos, "acp", "cp1", codigo,  
-                params = paste("centrar=", input$switch.scale, "dimensiones", 
-                               input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1) {
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  #' Gráfico de PCA (Contribución de las variables de la Dimensión 2)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plotPC2 = renderPlot({
-    tryCatch({
-      pca.modelo <<- updateData$pca.modelo
-      codigo <- code.pca.pc2(tr("cp2"), tr("contribucion"))
-      updateAceEditor(session, "fieldCodePC2", value = codigo)
-      res <- isolate(eval(parse(text = codigo)))
-      createLog(nombre.datos, "acp", "cp2", codigo,  
-                params = paste("centrar=", input$switch.scale, "dimensiones", 
-                               input$slider.npc, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  #' Inercia Clusterización Jerarquica
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  #'
-  output$inercia.cj = renderUI({
-    hc.modelo <<- updateData$hc.modelo
-    datos <- isolate(updateData$datos)
-    panel.inercia(updateData$hc.modelo$modelo, 
-                  as.numeric(input$cant.cluster), datos = datos)
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Diagrama)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.diag = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      code.diagrama <<- updatePlot$diag
-      res <- isolate(eval(parse(text = code.diagrama)))
-      createLog(
-        nombre.datos, "rephc", "dendograma", code.diagrama,  
-        params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.hcDendo, {
-    updatePlot$diag <- input$fieldCodeDendo
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Mapa)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.mapa = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      pca.modelo <<- updateData$pca.modelo
-      code.mapa <<- updatePlot$mapa
-      res <- isolate(eval(parse(text = code.mapa)))
-      createLog(
-        nombre.datos, "rephc", "mapa", code.mapa,  
-        params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  output$plot.mapa.zoom <- renderPlot({
+  output$plot.mapa.zoom <- shiny::renderPlot({
     tryCatch({
       ejex <- mapa.ranges$x
       ejey <- mapa.ranges$y
       if(is.null(ejex) & is.null(ejey)){
         return(NULL)
       } else {
-        cod.mapa <<- updatePlot$mapa
-        res <- isolate(eval(parse(text = cod.mapa)))
-        res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) +
-          theme(legend.position="none")
-        return(res)
+        grafico.hc.mapa + 
+          coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) +
+          theme(legend.position = "none")
       }
     }, error = function(e) {
       return(NULL)
@@ -1163,273 +851,169 @@ shinyServer(function(input, output, session) {
 
   output$mostrar.mapa.zoom = DT::renderDataTable({
     tryCatch({
+      pca.modelo <- shiny::isolate(updateData$pca.modelo)
       dimensiones <- as.data.frame(pca.modelo$ind$coord)
-      return(brushedPoints(
-        df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.mapa,
-        xvar = names(dimensiones)[input$slider.ejes[1]],
-        yvar = names(dimensiones)[input$slider.ejes[2]]))
+      res <- brushedPoints(
+        df = dimensiones[, c(1, 2)], brush = input$zoom.mapa,
+        xvar = names(dimensiones)[1], yvar = names(dimensiones)[2])
+      return(DT::datatable(res, options = list(
+        dom = 't', scrollX = TRUE, scrollY = "20vh",
+        pageLength = nrow(dimensiones))))
     }, error = function(e) {
       print(e)
       return(NULL)
     })
-  }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh",
-                    pageLength = nrow(datos)))
+  })
 
-  observe({
+  shiny::observe({
     brush <- input$zoom.mapa
     if (!is.null(brush)) {
       mapa.ranges$x <- c(brush$xmin, brush$xmax)
       mapa.ranges$y <- c(brush$ymin, brush$ymax)
-
     } else {
       mapa.ranges$x <- NULL
       mapa.ranges$y <- NULL
     }
   })
-
-  observeEvent(input$run.hcMapa, {
-    updatePlot$mapa <- input$fieldCodeMapa
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Horizontal)
+  
+  #' Actualizacion del Modelo K-medias
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plot.horiz = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      code.horiz <<- updatePlot$horiz
-      res <- isolate(eval(parse(text = code.horiz)))
-      createLog(
-        nombre.datos, "rephc", "rephoriz", code.horiz, vars = input$selHoriz,  
-        params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
+  shiny::observeEvent(c(updateData$datos, input$run.k), {
+    datos     <- updateData$datos
+    cant      <- shiny::isolate(input$cant.kmeans.cluster)
+    iter.max  <- shiny::isolate(input$num.iter)
+    nstart    <- shiny::isolate(input$num.nstart)
+    algorithm <- shiny::isolate(input$sel.algoritmo)
+    colores   <- sapply(1:cant, function(i) 
+      paste0("'", input[[paste0("kColor", i)]], "'"))
+    
+    codigo <- def.k.model(data = "datos", cant, iter.max, nstart, algorithm)
+    shinyAce::updateAceEditor(session, "fieldCodeKModelo", value = codigo)
+    
+    tryCatch ({
+      if(!is.null(datos) && !is.null(cant)) {
+        eval(parse(text = codigo))
+        updateData$k.modelo <- k.modelo
+        updateinitSelects("sel.Khoriz", 1:cant)
+        output$txtk <- shiny::renderPrint(print(unclass(k.modelo)))
+        rep.k <- c(cant, iter.max, nstart, algorithm) 
+        createLogK(nombre.datos, codigo, rep.k, "modelo")
+        
+        # Gráfico de K-medias (Inercia)
+        output$inercia.k = shiny::renderUI({
+          panel.inercia(esHC = F, k.modelo)
+        })
+        
+        # Gráfico de K-medias (Jambu)
+        output$plot.jambu = shiny::renderPlot({
+          metodo <- input$radiojambu
+          codigo <- def.code.jambu(calc.maxK(datos), metodo)
+          shinyAce::updateAceEditor(session, "fieldCodeJambu", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, "numcluster")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de K-medias (Mapa)
+        output$plot.kmapa = shiny::renderPlot({
+          codigo     <- cluster.mapa(colores, F)
+          pca.modelo <- shiny::isolate(updateData$pca.modelo)
+          shinyAce::updateAceEditor(session, "fieldCodeKmapa", value = codigo)
+          tryCatch({
+            grafico.k.mapa <<- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, "mapa")
+            return(grafico.k.mapa)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de K-medias (Horizontal)
+        output$plot.khoriz = shiny::renderPlot({
+          var    <- input$sel.Khoriz
+          codigo <- cluster.horiz(var, colores, F)
+          shinyAce::updateAceEditor(session, "fieldCodeKhoriz", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, paste0("horizontal:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de K-medias (Vertical)
+        output$plot.kvert = shiny::renderPlot({
+          var    <- input$sel.Kvert
+          codigo <- cluster.vert(var, colores, F)
+          shinyAce::updateAceEditor(session, "fieldCodeKvert", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, paste0("vertical:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        # Gráfico de K-medias (Radar)
+        output$plot.kradar = shiny::renderPlot({
+          codigo <- cluster.radar(colores, F)
+          shinyAce::updateAceEditor(session, "fieldCodeKradar", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, "radar")
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.numericas(datos)))
+          })
+        })
+        
+        #' Gráfico de K-medias (Categórico)
+        #' @author Diego
+        #' @return plot
+        #' @export
+        #'
+        output$plot.kcat = shiny::renderPlot({
+          var    <- input$sel.Kbar
+          codigo <- cluster.cat(var, colores, F)
+          shinyAce::updateAceEditor(session, "fieldCodeKbar", value = codigo)
+          tryCatch({
+            grafico <- eval(parse(text = codigo))
+            createLogK(nombre.datos, codigo, rep.k, paste0("categoricas:", var))
+            return(grafico)
+          }, error = function(e) {
+            mostrarError(e, ncol(var.categoricas(datos)))
+          })
+        })
       }
+    }, error = function(e) {
+      mostrarError(e)
     })
   })
-
-  observeEvent(input$run.hcHoriz, {
-    updatePlot$horiz <- input$fieldCodeHoriz
-  })
-
-  observeEvent(input$selHoriz, {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.cluster, function(i)
-        paste0("'", input[[paste0("hcColor", i)]], "'"))
-      color <- ifelse(input$selHoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$selHoriz)])
-      updatePlot$horiz <<- cluster.horiz(
-        sel = input$selHoriz, colores = nuevos.colores, color = color)
-      updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
-    }
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Vertical)
+  
+  #' Zoom K-medias (Mapa)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plot.vert = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      code.vert <<- updatePlot$vert
-      res <- isolate(eval(parse(text = code.vert)))
-      createLog(
-        nombre.datos, "rephc", "rephoriz", code.vert, vars = input$selVert,  
-        params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.hcVert, {
-    updatePlot$vert <- input$fieldCodeVert
-  })
-
-  observeEvent(input$selVert, {
-    if(!is.null(datos) && !is.null(input$cant.cluster)) {
-      nuevos.colores <- sapply(1:input$cant.cluster, function(i)
-        paste0("'", input[[paste0("hcColor", i)]], "'"))
-      updatePlot$vert <<- cluster.vert(sel = input$selVert,
-                                       colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
-    }
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Radar)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.radar = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      code.radar <<- updatePlot$radar
-      res <- isolate(eval(parse(text = code.radar)))
-      createLog(
-        nombre.datos, "rephc", "repradar", code.radar, params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.hcRadar, {
-    updatePlot$radar <- input$fieldCodeRadar
-  })
-
-  #' Gráfico de Clusterización Jerarquica (Categóricas)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.bar.cat = renderPlot({
-    tryCatch({
-      hc.modelo <<- updateData$hc.modelo
-      code.cat <<- updatePlot$cat
-      res <- isolate(eval(parse(text = code.cat)))
-      createLog(
-        nombre.datos, "rephc", "repcat", code.cat, vars = input$selBar,   
-        params = paste(
-          "Clusters=", input$cant.cluster, "distancia=", input$sel.dist.method,
-          "metodo=", input$sel.hc.method, collapse = "."))
-      return(res)
-    }, warning = function(w) {
-      showNotification(paste0("WARNING: ", w), duration = 10, type = "warning")
-      return(NULL)
-    }, error = function(e) {
-      if(ncol(var.categoricas(datos)) <= 0){
-        error.variables(isolate(input$idioma), F)
-      } else {
-        showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.hcBar, {
-    updatePlot$cat <- input$fieldCodeBar
-  })
-
-  observeEvent(input$selBar, {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.cluster, function(i)
-        paste0("'", input[[paste0("hcColor", i)]], "'"))
-      updatePlot$cat <<- cluster.cat(var = input$selBar,
-                                     colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeBar", value = updatePlot$cat)
-    }
-  })
-
-  #' Inercia K-medias
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$inercia.k = renderUI({
-    k.modelo <<- updateData$k.modelo
-    return(panel.inercia(esHC = F, k.modelo))
-  })
-
-  #' Gráfico de K-medias (Codo de Jambu)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.jambu = renderPlot({
-    tryCatch({
-      code.jambu <<- updatePlot$jambu
-      isolate(eval(parse(text = code.jambu)))
-      updateAceEditor(session, "fieldCodeJambu", value = code.jambu)
-      res <- isolate(eval(parse(text = code.jambu)))
-      createLog(nombre.datos, "kmedias", "jambu", code.jambu)
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.Jambu, {
-    updatePlot$jambu <- input$fieldCodeJambu
-  })
-
-  observeEvent(c(updateData$datos, input$iteracionesK), {
-    updatePlot$jambu <- def.code.jambu(
-      k = input$iteracionesK, tituloy = tr("inerciainter"))
-  })
-
-  #' Gráfico de K-medias (Mapa)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.kmapa = renderPlot({
-    tryCatch({
-      k.modelo <<- updateData$k.modelo
-      pca.modelo <<- updateData$pca.modelo
-      code.kmapa <<- updatePlot$kmapa
-      res <- isolate(eval(parse(text = code.kmapa)))
-      createLog(
-        nombre.datos, "kmedias", "mapa", code.kmapa, params = paste(
-          "Clusters=", input$cant.kmeans.cluster, "iter=", input$num.iter, 
-          "nstart=", input$num.nstart, "algoritmo=", input$sel.algoritmo, 
-          collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  output$plot.kmapa.zoom <- renderPlot({
+  output$plot.kmapa.zoom <- shiny::renderPlot({
     tryCatch({
       ejex <- kmapa.ranges$x
       ejey <- kmapa.ranges$y
       if(is.null(ejex) & is.null(ejey)){
         return(NULL)
       } else {
-        cod.kmapa <<- updatePlot$kmapa
-        res <- isolate(eval(parse(text = cod.kmapa)))
-        res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) +
+        grafico.k.mapa + 
+          coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) +
           theme(legend.position="none")
-        return(res)
       }
     }, error = function(e) {
       return(NULL)
@@ -1438,19 +1022,21 @@ shinyServer(function(input, output, session) {
 
   output$mostrar.kmapa.zoom = DT::renderDataTable({
     tryCatch({
+      pca.modelo  <- shiny::isolate(updateData$pca.modelo)
       dimensiones <- as.data.frame(pca.modelo$ind$coord)
-      return(brushedPoints(
-        df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.kmapa,
-        xvar = names(dimensiones)[input$slider.ejes[1]],
-        yvar = names(dimensiones)[input$slider.ejes[2]]))
+      res <- brushedPoints(
+        df = dimensiones[, c(1, 2)], brush = input$zoom.kmapa,
+        xvar = names(dimensiones)[1], yvar = names(dimensiones)[2])
+      return(DT::datatable(res, options = list(
+        dom = 't', scrollX = TRUE, scrollY = "20vh",
+        pageLength = nrow(dimensiones))))
     }, error = function(e) {
       print(e)
       return(NULL)
     })
-  }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh",
-                    pageLength = nrow(datos)))
+  })
 
-  observe({
+  shiny::observe({
     brush <- input$zoom.kmapa
     if (!is.null(brush)) {
       kmapa.ranges$x <- c(brush$xmin, brush$xmax)
@@ -1461,167 +1047,16 @@ shinyServer(function(input, output, session) {
       kmapa.ranges$y <- NULL
     }
   })
-
-  observeEvent(input$run.Kmapa, {
-    updatePlot$kmapa <- input$fieldCodeKmapa
-  })
-
-  #' Gráfico de K-medias (Horizontal)
+  
+  #' Mostrar Colores (Cluster jerarquico)
   #' @author Diego
   #' @return plot
   #' @export
   #'
-  output$plot.khoriz = renderPlot({
-    tryCatch({
-      k.modelo <<- updateData$k.modelo
-      code.khoriz <<- updatePlot$khoriz
-      res <- isolate(eval(parse(text = code.khoriz)))
-      createLog(
-        nombre.datos, "kmedias", "rephoriz", code.khoriz, 
-        vars = input$sel.Khoriz, params = paste(
-          "Clusters=", input$cant.kmeans.cluster, "iter=", input$num.iter, 
-          "nstart=", input$num.nstart, "algoritmo=", input$sel.algoritmo, 
-          collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.Khoriz, {
-    updatePlot$khoriz <- input$fieldCodeKhoriz
-  })
-
-  observeEvent(input$sel.Khoriz, {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i)
-        paste0("'", input[[paste0("kColor", i)]], "'"))
-      color <- ifelse(input$sel.Khoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$sel.Khoriz)])
-      updatePlot$khoriz <- cluster.horiz(esHC = F, sel = input$sel.Khoriz,
-                                         colores = nuevos.colores, color = color)
-      updateAceEditor(session, "fieldCodeKhoriz", value = updatePlot$khoriz)
-    }
-  })
-
-  #' Gráfico de K-medias (Vertical)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-    output$plot.kvert = renderPlot({
-      tryCatch({
-        k.modelo <<- updateData$k.modelo
-        code.kvert <<- updatePlot$kvert
-        res <- isolate(eval(parse(text = code.kvert)))
-        createLog(
-          nombre.datos, "kmedias", "repvert", code.kvert, 
-          vars = input$sel.Kvert, params = paste(
-            "Clusters=", input$cant.kmeans.cluster, "iter=", input$num.iter, 
-            "nstart=", input$num.nstart, "algoritmo=", input$sel.algoritmo, 
-            collapse = "."))
-        return(res)
-      }, error = function(e) {
-        if(ncol(var.numericas(datos)) <= 1){
-          error.variables(isolate(input$idioma), T)
-        } else {
-          showNotification(paste0("ERROR: ", e),
-                           duration = 10, type = "error")
-          return(NULL)
-        }
-      })
-    })
-
-  observeEvent(input$run.KVert, {
-    updatePlot$kvert <- input$fieldCodeKvert
-  })
-
-  observeEvent(input$sel.Kvert, {
-    if(!is.null(datos) && !is.null(input$cant.kmeans.cluster)) {
-      nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i)
-        paste0("'", input[[paste0("kColor", i)]], "'"))
-      updatePlot$kvert <<- cluster.vert(esHC = F, sel = input$sel.Kvert,
-                                         colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
-    }
-  })
-
-  #' Gráfico de K-medias (Radar)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.kradar = renderPlot({
-    tryCatch({
-      k.modelo <<- updateData$k.modelo
-      code.kradar <<- updatePlot$kradar
-      res <- isolate(eval(parse(text = code.kradar)))
-      createLog(
-        nombre.datos, "kmedias", "repradar", code.kradar, params = paste(
-          "Clusters=", input$cant.kmeans.cluster, "iter=", input$num.iter, 
-          "nstart=", input$num.nstart, "algoritmo=", input$sel.algoritmo, 
-          collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.numericas(datos)) <= 1){
-        error.variables(isolate(input$idioma), T)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.Kradar, {
-    updatePlot$kradar <- input$fieldCodeKradar
-  })
-
-  #' Gráfico de K-medias (Categórico)
-  #' @author Diego
-  #' @return plot
-  #' @export
-  #'
-  output$plot.kcat = renderPlot({
-    tryCatch({
-      k.modelo <<- updateData$k.modelo
-      code.kcat <<- updatePlot$kcat
-      res <- isolate(eval(parse(text = code.kcat)))
-      createLog(
-        nombre.datos, "kmedias", "repcat", code.kcat, vars = input$sel.Kbar, 
-        params = paste(
-          "Clusters=", input$cant.kmeans.cluster, "iter=", input$num.iter, 
-          "nstart=", input$num.nstart, "algoritmo=", input$sel.algoritmo, 
-          collapse = "."))
-      return(res)
-    }, error = function(e) {
-      if(ncol(var.categoricas(datos)) <= 0){
-        error.variables(isolate(input$idioma), F)
-      } else {
-        showNotification(paste0("ERROR: ", e),
-                         duration = 10, type = "error")
-        return(NULL)
-      }
-    })
-  })
-
-  observeEvent(input$run.Kbar, {
-    updatePlot$kcat <- input$fieldCodeKbar
-  })
-
-  observeEvent(input$sel.Kbar, {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i)
-        paste0("'", input[[paste0("kColor", i)]], "'"))
-      updatePlot$kcat <<- cluster.cat(esHC = F, var = input$sel.Kbar,
-                                       colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeKbar", value = updatePlot$kcat)
+  shiny::observeEvent(input$cant.cluster, {
+    cant <- input$cant.cluster
+    if(!is.null(cant)) {
+      mostrar.colores("hcColor", cant)
     }
   })
 
@@ -1630,125 +1065,73 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(updateData$datos, input$cant.kmeans.cluster), {
-    if(!is.null(datos) && !is.null(input$cant.kmeans.cluster)) {
-      updateinitSelects("sel.Khoriz", 1:input$cant.kmeans.cluster)
-      for (i in 1:10) {
-        if(i <= input$cant.kmeans.cluster) {
-          shinyjs::show(paste0("kColor", i))
-        } else {
-          shinyjs::hide(paste0("kColor", i))
-        }
-      }
+  shiny::observeEvent(input$cant.kmeans.cluster, {
+    cant <- input$cant.kmeans.cluster
+    if(!is.null(cant)) {
+      mostrar.colores("kColor", cant)
     }
   })
 
-  #' Mostrar Colores (Cluster jerarquico)
+  #' Agregar Clusteres a tabla de datos (Cluster jerarquico)
   #' @author Diego
-  #' @return plot
+  #' @return nothing
   #' @export
   #'
-  observeEvent(c(updateData$datos, input$cant.cluster), {
-    if(!is.null(datos) && !is.null(input$cant.cluster)){
-      updateinitSelects("selHoriz", 1:input$cant.cluster)
-      for (i in 1:10) {
-        if(i <= input$cant.cluster) {
-          shinyjs::show(paste0("hcColor", i))
-        } else {
-          shinyjs::hide(paste0("hcColor", i))
-        }
-      }
-    }
+  shiny::observeEvent(input$HCbutton, {
+    datos <- shiny::isolate(updateData$datos)
+    hc.modelo <- shiny::isolate(updateData$hc.modelo)
+    idioma <- shiny::isolate(input$idioma)
+    updateData$datos <- clusters.variable(datos, hc.modelo$clusters, idioma)
   })
 
-  observeEvent(c(input$hcColor1, input$hcColor2, input$hcColor3, input$hcColor4,
-                 input$hcColor5, input$hcColor6, input$hcColor7, input$hcColor8,
-                 input$hcColor9, input$hcColor10), {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.cluster, function(i)
-        paste0("'", input[[paste0("hcColor", i)]], "'"))
-      color <- ifelse(input$selHoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$selHoriz)])
-      updatePlot$diag <- diagrama(cant = input$cant.cluster,
-                                   colores = nuevos.colores)
-      updatePlot$mapa <- cluster.mapa(colores = nuevos.colores)
-      updatePlot$horiz <- cluster.horiz(
-        sel = input$selHoriz, colores = nuevos.colores, color = color)
-      updatePlot$vert <- cluster.vert(
-        sel = input$selVert, colores = nuevos.colores)
-      updatePlot$radar <- cluster.radar(colores = nuevos.colores)
-      updatePlot$cat <- cluster.cat(
-        var = input$selBar, colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeDendo", value = updatePlot$diag)
-      updateAceEditor(session, "fieldCodeMapa", value = updatePlot$mapa)
-      updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
-      updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
-      updateAceEditor(session, "fieldCodeRadar", value = updatePlot$radar)
-      updateAceEditor(session, "fieldCodeBar", value = updatePlot$cat)
-    }
+  #' Agregar Clusteres a tabla de datos (K-medias)
+  #' @author Diego
+  #' @return nothing
+  #' @export
+  #'
+  shiny::observeEvent(input$Kbutton, {
+    datos <- shiny::isolate(updateData$datos)
+    k.modelo <- shiny::isolate(updateData$k.modelo)
+    idioma <- shiny::isolate(input$idioma)
+    updateData$datos <- clusters.variable(datos, k.modelo$cluster, idioma, F)
   })
 
-  observeEvent(c(
-    input$kColor1, input$kColor2, input$kColor3, input$kColor4, input$kColor5,
-    input$kColor6, input$kColor7, input$kColor8, input$kColor9, input$kColor10
-  ), {
-    if(!is.null(datos)){
-      nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i)
-        paste0("'", input[[paste0("kColor", i)]], "'"))
-      color <- ifelse(input$sel.Khoriz %in% c("", "todos"), "red",
-                      nuevos.colores[as.numeric(input$sel.Khoriz)])
-      updatePlot$kmapa <- cluster.mapa(esHC = F, colores = nuevos.colores)
-      updatePlot$khoriz <- cluster.horiz(
-        esHC = F, sel = input$sel.Khoriz, colores = nuevos.colores, color = color)
-      updatePlot$kvert <- cluster.vert(
-        esHC = F, sel = input$sel.Kvert, colores = nuevos.colores)
-      updatePlot$kradar <- cluster.radar(esHC = F, colores = nuevos.colores)
-      updatePlot$kcat <- cluster.cat(
-        esHC = F, var = input$sel.Kbar, colores = nuevos.colores)
-      updateAceEditor(session, "fieldCodeKmapa", value = updatePlot$kmapa)
-      updateAceEditor(session, "fieldCodeKhoriz", value = updatePlot$khoriz)
-      updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
-      updateAceEditor(session, "fieldCodeKradar", value = updatePlot$kradar)
-      updateAceEditor(session, "fieldCodeKbar", value = updatePlot$kcat)
-    }
-  })
-
-  observeEvent(input$HCbutton, {
-    ifelse(input$idioma == "es", aux <- "CJ", aux <- "HC")
-    C.Jerarquica <- as.factor(paste0(aux, hc.modelo$clusters))
-    datos[[paste0(length(levels(C.Jerarquica)), ".", aux)]] <<- C.Jerarquica
-    output$contents = DT::renderDataTable(mostrarData())
-    showNotification(tr("msjclusters"), duration = 5, type = "message")
-    updateSelectInput(session, "sel.distribucion.cat",
-                      choices = colnames(var.categoricas(datos)))
-  })
-
-  observeEvent(input$Kbutton, {
-    ifelse(input$idioma == "es", aux <- ".Kmedias", aux <- ".Kmeans")
-    Kmedias <- as.factor(paste0("K", k.modelo$cluster))
-    datos[[paste0(length(levels(Kmedias)), aux)]] <<- Kmedias
-    output$contents = DT::renderDataTable(mostrarData())
-    showNotification(tr("msjclusters"), duration = 5, type = "message")
-    updateSelectInput(session, "sel.distribucion.cat",
-                      choices = colnames(var.categoricas(datos)))
-  })
-
-  output$downloaDatos <- downloadHandler(
+  #' Descarga tabla de datos
+  #' @author Diego
+  #' @return nothing
+  #' @export
+  #'
+  output$downloaDatos <- shiny::downloadHandler(
     filename = function() {
       input$file1$name
     },
     content = function(file) {
+      datos <- shiny::isolate(updateData$datos)
       write.csv(datos, file, row.names = input$rowname)
     }
   )
 
-  observeEvent(c(input$principal, input$idioma), {
-    if(input$principal == "reporte"){
-      updateAceEditor(session, "fieldCodeReport", value = user.reporte())
-    }
+  #' Actualizar Reporte
+  #' @author Diego
+  #' @return nothing
+  #' @export
+  #'
+  shiny::observeEvent(
+    c(input$principal, input$idioma, input$textNombre, input$textTitulo), {
+      titulo  <- input$textTitulo
+      nombre  <- input$textNombre
+      repcode <- paste0(def.reporte(titulo, nombre), user.reporte())
+      if(input$principal == "reporte") {
+        shinyAce::updateAceEditor(session, "fieldCodeReport", value = repcode)
+      }
   })
 
-  output$descargar <- downloadHandler(
+  #' Generar Reporte
+  #' @author Diego
+  #' @return nothing
+  #' @export
+  #'
+  output$descargar <- shiny::downloadHandler(
     filename = function() {
       paste(input$textTitulo,'-', input$textNombre, '.zip', sep='')
     },
@@ -1758,8 +1141,7 @@ shinyServer(function(input, output, session) {
       files <- NULL;
 
       namermd <- paste(input$textTitulo,'-', input$textNombre, '.rmd', sep='')
-      reporte <- paste0(def.reporte(input$textTitulo, input$textNombre), 
-                        input$fieldCodeReport)
+      reporte <- input$fieldCodeReport
       writeLines(reporte, namermd)
       files <- c(namermd, files)
 
@@ -1772,9 +1154,8 @@ shinyServer(function(input, output, session) {
           src,  params = NULL, rmarkdown::word_document(), envir = env.report)
       }, message = function(m) {
         salida.code <<- paste0(m$message, salida.code)
-          shinyjs::html(id = "txtreport", html = salida.code)
-        }
-      )
+        shinyjs::html(id = "txtreport", html = salida.code)
+      })
       recover.cat()
       file.rename(out, paste(input$textTitulo,'-', input$textNombre, '.docx', sep=''))
       files <- c(paste(input$textTitulo,'-', input$textNombre, '.docx', sep=''), files)
