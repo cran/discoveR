@@ -184,7 +184,31 @@ inputRadio <- function(inputId, value, isSelected) {
   return(res)
 }
 
-radioSwitch <- function(id, label = NULL, names, values = NULL) {
+checkSwitch <- function(id, label = NULL, name) {
+  tags$div(
+    class = "form-group", `data-shinyjs-resettable-type`="RadioButtons", 
+    `data-shinyjs-resettable-value` = name,
+    if(!is.null(label)) {
+      tags$label(class = "control-label", `for` = id, `data-id` = label)
+    },
+    tags$div(
+      `data-toggle`="buttons",
+      tags$div(
+        class = "btn-radiogroup",
+        tags$button(
+          class = "btn radiobtn btn-radioswitch",
+          tags$span(class = "radio-btn-icon-yes", tags$i(class="glyphicon glyphicon-ok")),
+          tags$span(class = "radio-btn-icon-no", tags$i(class="glyphicon glyphicon-remove")),
+          tags$input(id=id, type="checkbox", style = 
+                       "position: absolute;clip: rect(0,0,0,0);pointer-events: none;"),
+          labelInput(name)
+        )
+      )
+    )
+  )
+}
+
+radioSwitch <- function(id, label = NULL, names, values = NULL, val.def = T) {
   if(is.null(values)) values <- c(TRUE, FALSE) 
   tags$div(
     class = "form-group", `data-shinyjs-resettable-type`="RadioButtons", 
@@ -197,22 +221,38 @@ radioSwitch <- function(id, label = NULL, names, values = NULL) {
       tags$div(
         class = "btn-radiogroup",
         tags$button(
-          class = "btn radiobtn btn-radioswitch active",
+          class = ifelse(val.def, "btn radiobtn btn-radioswitch active", 
+                 "btn radiobtn btn-radioswitch"),
           tags$span(class = "radio-btn-icon-yes", tags$i(class="glyphicon glyphicon-ok")),
           tags$span(class = "radio-btn-icon-no", tags$i(class="glyphicon glyphicon-remove")),
-          tags$input(type="radio", autocomplete="off", name=id, value=values[1], checked="checked",
-                     style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;"),
+          
+          if(val.def) {
+            tags$input(type="radio", autocomplete="off", name=id, value=values[1], checked = "checked",
+                       style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;")
+          } else {
+            tags$input(type="radio", autocomplete="off", name=id, value=values[1],
+                       style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;")
+          },
+          
           labelInput(names[1])
         )
       ),
       tags$div(
         class = "btn-radiogroup", role = "group", 
         tags$button(
-          class = "btn radiobtn btn-radioswitch",
+          class = ifelse(val.def,"btn radiobtn btn-radioswitch", 
+                 "btn radiobtn btn-radioswitch active"),
           tags$span(class = "radio-btn-icon-yes", tags$i(class="glyphicon glyphicon-ok")),
           tags$span(class = "radio-btn-icon-no", tags$i(class="glyphicon glyphicon-remove")),
-          tags$input(type="radio", autocomplete="off", name=id, value=values[2],
-                     style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;"),
+          
+          if(val.def) {
+            tags$input(type="radio", autocomplete="off", name=id, value=values[2],
+                       style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;")
+          } else {
+            tags$input(type="radio", autocomplete="off", name=id, value=values[2], checked = "checked",
+                       style = "position: absolute;clip: rect(0,0,0,0);pointer-events: none;")
+          },
+          
           labelInput(names[2])
         )
       )
@@ -772,10 +812,15 @@ code.pca.pc1 <- function(titulo, tituloy, dim = "1") {
 #' @return functions
 #' @export
 #'
-def.model <- function(cant = "as.numeric(input$cant.cluster)",
-                      dist.method = "euclidean", hc.method = "complete") {
+def.model <- function(cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", 
+                      hc.method = "complete", centrar = T) {
+  if(centrar) {
+    init <- "datos.num <- as.data.frame(scale(var.numericas(datos)))\n"
+  } else {
+    init <- "datos.num <- var.numericas(datos)\n"
+  }
   return(paste0(
-    "modelo <- hclust(dist(var.numericas(datos), method = '",
+    init, "modelo <- hclust(dist(datos.num, method = '",
     dist.method, "'), method = '", hc.method, "')\n",
     "clusters <- as.factor(cutree(modelo, k = ", cant, "))\n",
     "centros <- calc.centros(var.numericas(datos), clusters)\n",
@@ -784,7 +829,7 @@ def.model <- function(cant = "as.numeric(input$cant.cluster)",
 
 calc.centros <- function(data, clusteres) {
   if(is.null(clusteres)) return(NULL)
-  real <- lapply(unique(clusteres), function(i)
+  real <- lapply(levels(clusteres), function(i)
     colMeans(data[clusteres == i, ]))
   real <- as.data.frame(do.call('rbind', real))
   porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))
@@ -820,7 +865,7 @@ inercia.total <- function(DF) {
 BP <- function(DF, modelo, cant) {
   BP2(0, 1, DF, centros.total(DF), cant, cutree(modelo, k = cant))
 }
-BP2 <- function(suma, i, DF, c.total, cant, clusters){
+BP2 <- function(suma, i, DF, c.total, cant, clusters) {
   if(i > cant){
     return(suma)
   }
@@ -861,9 +906,14 @@ diagrama <- function(colores = "'steelblue'") {
 #' @return functions
 #' @export
 #'
-def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)",
-                        iter.max = 200, nstart = 300, algorithm = "Hartigan-Wong") {
-  return(paste0("k.modelo <- kmeans(var.numericas(", data, "), centers = ",
+def.k.model <- function(cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, 
+                        nstart = 300, algorithm = "Hartigan-Wong", centrar = T) {
+  if(centrar) {
+    init <- "datos.num <- as.data.frame(scale(var.numericas(datos)))\n"
+  } else {
+    init <- "datos.num <- var.numericas(datos)\n"
+  }
+  return(paste0(init, "k.modelo <- kmeans(datos.num, centers = ",
                 cant, ",\n    ", "iter.max = ", iter.max,", nstart = ",
                 nstart,", algorithm = '", algorithm ,"')"))
 }
@@ -894,15 +944,16 @@ def.code.jambu <- function(k, metodo = "wss") {
 #' @return functions
 #' @export
 #'
-panel.inercia <- function(modelo, cant.clusters, datos = NULL, esHC = T) {
+panel.inercia <- function(modelo, cant.clusters, datos = NULL, esHC = T, centrar = F) {
   if (esHC) {
-    total.clase <- inercia.total(var.numericas(datos))
+    if(centrar) datos <- as.data.frame(scale(var.numericas(datos)))
+    total.clase <- sum(scale(var.numericas(datos), scale = FALSE)^2)
     inter.clase <- BP(var.numericas(datos), modelo, cant.clusters)
     intra.clase <- total.clase - inter.clase
   } else {
-    intra.clase <- modelo$tot.withinss
-    inter.clase <- modelo$betweenss
     total.clase <- modelo$totss
+    inter.clase <- modelo$betweenss
+    intra.clase <- modelo$tot.withinss
   }
 
   datos.numericos <- list(
@@ -943,8 +994,8 @@ cluster.mapa <- function(colores = "'steelblue'", esHC = T) {
     ifelse(esHC, "hc.modelo$clusters", "as.factor(k.modelo$cluster)")
   return(paste0(
     "fviz_pca_biplot(pca.modelo, col.ind = ", code.clusters, ",\n",
-    "  palette = c(", paste(colores, collapse = ","), "),\n",
-    "  col.var = 'steelblue', legend.title = 'Cluster') + labs(title = '')"))
+    "  col.var = 'steelblue', legend.title = 'Cluster') + labs(title = '') +\n", 
+    "  scale_color_manual(values = c(", paste(colores, collapse = ","), "))"))
 }
 
 #' Interpretación Horizontal
@@ -964,10 +1015,14 @@ centros.horizontal.todos <- function(centros){
     theme(text = element_text(size = 20)) + aes(fill = variable)
 }
 
-cluster.horiz <- function(sel = "1", color = "steelblue", esHC = T) {
+cluster.horiz <- function(sel = "1", color = "steelblue", esHC = T, porc = T) {
   code.centros <-
-    ifelse(esHC, "centros <- as.data.frame(t(hc.modelo$centros$real))",
-           "centros <- as.data.frame(t(k.modelo$centers))")
+    ifelse(esHC, "centros <- as.data.frame(hc.modelo$centros$real)",
+           "centros <- as.data.frame(calc.centros(var.numericas(datos), as.factor(k.modelo$cluster))$real)")
+  ifelse(porc, 
+         code.centros <- paste0(code.centros, "\ncentros <- as.data.frame(t(apply(centros, 2, function(i) i/max(abs(i)))))"),
+         code.centros <- paste0(code.centros, "\ncentros <- as.data.frame(t(centros))")
+  )
   if(sel == "todos") {
     return(paste0(
       code.centros, "\ncentros.horizontal.todos(centros) +\n",
@@ -995,10 +1050,11 @@ centros.vertical.todos <- function(centros){
     geom_bar(stat='identity', position='dodge') + labs(x = '', y = '')
 }
 
-cluster.vert <- function(sel = "1", colores = "'steelblue'", esHC = T) {
+cluster.vert <- function(sel = "1", colores = "'steelblue'", esHC = T, porc = T) {
   code.centros <-
     ifelse(esHC, "centros <- hc.modelo$centros$real",
-           "centros <- as.data.frame(k.modelo$centers)")
+           "centros <- calc.centros(var.numericas(datos), as.factor(k.modelo$cluster))$real")
+  if(porc) code.centros <- paste0(code.centros, "\ncentros <- data.frame(apply(centros, 2, function(i) i/max(abs(i))))")
   if(sel == "todos") {
     return(paste0(
       code.centros, "\ncentros.vertical.todos(centros) +",
@@ -1054,8 +1110,7 @@ cluster.radar <- function(colores = "'steelblue'", esHC = T){
     ifelse(
       esHC, "centros <- hc.modelo$centros$porcentual",
       paste0(
-        "centros <- as.data.frame(apply(k.modelo$centers, 2, function(i)\n",
-        "  scales::rescale(i, to = c(0, 100))))"))
+        "centros <- calc.centros(var.numericas(datos), as.factor(k.modelo$cluster))$porcentual"))
   return(paste0(
     code.centros, "\ncentros.radar(centros) + \n",
     "scale_color_manual('Clusters', values = c(", paste(colores, collapse = ","),
@@ -1068,17 +1123,31 @@ cluster.radar <- function(colores = "'steelblue'", esHC = T){
 #' @return functions
 #' @export
 #'
-cluster.cat <- function(var, colores = "'steelblue'", esHC = T) {
+cluster.cat <- function(var, colores = "'steelblue'", esHC = T, porc = T) {
   code.clusters <-
     ifelse(esHC, "hc.modelo$clusters", "as.factor(k.modelo$cluster)")
-  return(paste0(
-    "NDatos <- cbind(datos, Cluster = ", code.clusters, ")\n",
-    "plot(ggplot(NDatos, aes(x = ", var, ")) + geom_bar(aes(fill = Cluster)) +",
-    "\n  scale_fill_manual('Cluster', values = c(", 
-    paste(colores, collapse = ","),")) +\n  ",
-    "facet_wrap(~Cluster, labeller = label_both) +\n  ",
-    "theme(text = element_text(size = 15)) +\n  ", 
-    "labs(x = '', y = '') + guides(fill = F))"))
+  res <- paste0("NDatos <- cbind(datos, Cluster = ", code.clusters, ")\n")
+  if(!porc) {
+    return(paste0(
+      res, 
+      "plot(ggplot(NDatos, aes(x = ", var, ")) + geom_bar(aes(fill = Cluster)) +",
+      "\n  scale_fill_manual('Cluster', values = c(",
+      paste(colores, collapse = ","),")) +\n  ",
+      "facet_wrap(~Cluster, labeller = label_both) +\n  ",
+      "theme(text = element_text(size = 15)) +\n  ",
+      "labs(x = '', y = '') + guides(fill = F))"
+    ))
+  } else {
+    return(paste0(
+      res, 
+      "aux <- sapply(1:length(unique(NDatos$Cluster)), function(i) sum(NDatos$Cluster == i))\n",
+      "ggplot(NDatos, aes(x = Cluster, fill = ", var, ")) + geom_bar(position = 'fill') +\n", 
+      "geom_text(aes(label = paste0(..count.., '\n', scales::percent(..count../aux[..x..]))),\n", 
+      "          stat = 'count', position = position_fill(vjust = 0.5)) +\n", 
+      "coord_flip() + labs(y = '') +\n", 
+      "theme(axis.text.y = element_text(size = 16), axis.title.y = element_text(size = 20)) + \n",
+      "scale_fill_brewer(palette = 'Dark2')"))
+  }
 }
 
 clusters.variable <- function(datos, clusters, idioma, esHC = T) {
@@ -1202,7 +1271,7 @@ user.reporte <- function() {
       rep.datos, "']]\ndatos <<- datos.originales\n```\n")
     for (analisis in names(env.report$codigo.reporte[[rep.datos]])) {
       rep.codigos <- unlist(env.report$codigo.reporte[[rep.datos]][[analisis]])
-      if(!is.null(rep.codigos)) {
+      if(!is.null(rep.codigos) & (analisis == "basico" | analisis == "acp" | length(rep.codigos) > 1)) {
         for (i in 1:length(rep.codigos)) {
           res <- paste0(res, "\n\n## ", tr(analisis), "\n\n")
           rep.titulos <- limpiar.titulos(names(rep.codigos)[i])
