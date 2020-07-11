@@ -1,7 +1,7 @@
 Title: Exploratory Data Analysis System
 Package: discoveR
 Type: Package
-Version: 1.2.7
+Version: 1.2.8
 Author: Oldemar Rodriguez R. with contributions from Diego Jimenez A. and Andres Navarro D.
 Maintainer: Oldemar Rodriguez <oldemar.rodriguez@ucr.ac.cr>
 Depends: R (>= 3.5)
@@ -15,6 +15,6 @@ LazyData: true
 URL: http://www.promidat.com
 RoxygenNote: 6.1.1
 NeedsCompilation: no
-Packaged: 2020-06-25 20:15:33 UTC; promidat05
+Packaged: 2020-07-10 21:59:21 UTC; PROMiDAT03
 Repository: CRAN
-Date/Publication: 2020-06-26 14:40:15 UTC
+Date/Publication: 2020-07-11 17:20:03 UTC
