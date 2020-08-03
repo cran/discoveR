@@ -77,9 +77,8 @@ shinyUI(shinydashboardPlus::dashboardPagePlus(
   shinydashboard::dashboardBody(
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css"),
-      tags$link(rel = "shiny::icon", type = "image", href = paste0(
-        "http://www.promidat.org/theme/image.php/", 
-        "formal_white/theme/1438713216/favicon")),
+      tags$link(rel = "icon", type = "image", href =
+                  "https://promidat.education/theme/academi/pix/favicon.ico"),
       useShinyjs(),
       tags$script(src = "myscript.js")
     ),
@@ -676,7 +675,7 @@ shinyUI(shinydashboardPlus::dashboardPagePlus(
           icono = shiny::icon("info")
         ),
         infoBoxPROMiDAT(
-          labelInput("version"), "1.2.8", icono = shiny::icon("file-code-o"))
+          labelInput("version"), "1.2.9", icono = shiny::icon("file-code-o"))
       )
     ) #shinydashboard::tabItems
   ) #dashboardBody
