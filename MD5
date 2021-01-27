@@ -1,12 +1,12 @@
-a9b47277ba3304243f3c797ab6f23137 *DESCRIPTION
-3722e021c550a2e0ab0476739f1823cb *NAMESPACE
+17886d816b123d20283757e17c59dab0 *DESCRIPTION
+b8966c0f10d525a66973b9772d2093a2 *NAMESPACE
 ae77374164b35e4dd1eaf4e2d36d6903 *R/app_config.R
 5aa388eff3a8a076516a578bc70ae563 *R/app_server.R
-bcc1e1dd636e759b012d3aa3fa3e2539 *R/app_ui.R
-da1a242124709fbd88852d43696dbb49 *R/discoveR.R
+45379c790c87d7cd1df60ad6134552e4 *R/app_ui.R
+b86ab8d8b6163e0296eef3904dad7072 *R/discoveR.R
 3b414a93d7cda77b95dfc9a7a8807fd7 *R/golem_utils_server.R
 79eace5eaffd7585a6c602752ba529da *R/golem_utils_ui.R
-43cf22ad24c3d1d77b6e6a383cd17766 *R/mod_acercade.R
+c0bb85e018f38e0f9c4f70c98fa54f43 *R/mod_acercade.R
 fca88714716b1e7b27ff7e8c92f22051 *R/mod_acp.R
 d1426160706add4b25ace1e79f8b0aaf *R/mod_acp_fct.R
 836feb71fa0a7e17a49eb49532e9ef3e *R/mod_acp_utils.R
@@ -49,7 +49,7 @@ e28b09db0a9cd7c4d783a6e9eb608428 *man/app_server.Rd
 fc863eb40dcb4c49d78bed3eb458a749 *man/calc.centros.Rd
 e75735135e6d347f32d07c8937ddd607 *man/datos.disyuntivos.Rd
 bba3f39122fa287313f13a7035db735e *man/dfnormal.Rd
-c4235300ec07d8fe26d5ac3c3d67691d *man/discoveR.Rd
+48e92c8c1116f68a1d6288ddb7d7f660 *man/discoveR.Rd
 e370a261f06b33e120a93d27785bef61 *man/get_hist_data.Rd
 96aeb64b34d9f4d863c98df130078e19 *man/gg_dendrograma.Rd
 ff702cfbf4cca676375fc016a01e69ff *man/hc_cat.Rd
