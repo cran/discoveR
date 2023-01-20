@@ -4,7 +4,7 @@
 \alias{e_mapa_3D}
 \title{PCA plot of individuals colored by clusters}
 \usage{
-e_mapa_3D(pca.model, clusters, colores = NULL, ejes = c(1, 2, 3))
+e_mapa_3D(pca.model, clusters, colores = NULL, ejes = c(1, 2, 3), etq = F)
 }
 \arguments{
 \item{pca.model}{an object of class PCA [FactoMineR].}
@@ -14,6 +14,8 @@ e_mapa_3D(pca.model, clusters, colores = NULL, ejes = c(1, 2, 3))
 \item{colores}{a vector of color for each cluster.}
 
 \item{ejes}{a numeric vector of length 3 specifying the dimensions to be plotted.}
+
+\item{etq}{a boolean, whether to add label to graph or not.}
 }
 \value{
 echarts4r plot
@@ -22,9 +24,9 @@ echarts4r plot
 PCA plot of individuals colored by clusters
 }
 \examples{
-p <- discoveR:::PCA(iris[, -5], graph = FALSE)
+p <- FactoMineR::PCA(iris[, -5], graph = FALSE)
 clusters <- factor(kmeans(iris[, -5], 3)$cluster)
-e_mapa_3D(p, clusters, c("steelblue", "pink", "forestgreen"))
+e_mapa_3D(p, clusters, c("steelblue", "pink", "forestgreen"), etq = FALSE)
 
 }
 \author{

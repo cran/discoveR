@@ -4,7 +4,9 @@
 #'     DO NOT REMOVE.
 #' @import rlang
 #' @import shiny
+#' @import loadeR
 #' @import shinyAce
+#' @import FactoMineR
 #' @import shinydashboardPlus
 #' @importFrom shinydashboard dashboardBody menuItem menuSubItem sidebarMenu tabBox tabItem tabItems
 #' @importFrom shinyjs useShinyjs show hide addClass removeClass
@@ -28,7 +30,7 @@ app_ui <- function(request) {
           </span>',
           '<img src= "img/logo_small.png" height = 50%, width = "120%">'
         )),
-        controlbarIcon = icon("cogs")
+        controlbarIcon = icon("gears")
       ),
       
       dashboardSidebar(
@@ -37,29 +39,36 @@ app_ui <- function(request) {
           tags$div(style="padding-top:10px;"),
           menuItem(labelInput("data"), tabName = "cargar",
                    icon = icon("database")),
-          menuItem(labelInput("basico"), tabName = "parte1",
-                   icon = icon("th-list"),
-            menuSubItem(labelInput("resumen"), "resumen",
-                        icon = icon("sort-numeric-down")),
-            menuSubItem(labelInput("normalidad"), "normalidad",
+          menuItem(labelInput("basi"), tabName = "parte1",
+                   icon = icon("table-list"),
+            menuSubItem(labelInput("resu"), "resumen",
+                        icon = icon("arrow-down-1-9")),
+            menuSubItem(labelInput("norm"), "normalidad",
                         icon = icon("chart-bar")),
-            menuSubItem(labelInput("dispersion"), "dispersion",
+            menuSubItem(labelInput("disp"), "dispersion",
                         icon = icon("chart-line")),
-            menuSubItem(labelInput("distribucion"), "distribucion",
+            menuSubItem(labelInput("dist"), "distribucion",
                         icon = icon("chart-area")),
-            menuSubItem(labelInput("correlacion"), "correlacion",
+            menuSubItem(labelInput("corr"), "correlacion",
                         icon = icon("table"))
           ),
           menuItem(labelInput("acp"), tabName = "acp", 
                    icon = icon("chart-pie")),
+          menuItem(labelInput("afc"), tabName = "afc", 
+                   icon = icon("envelope")),
+          menuItem(labelInput("afcm"), tabName = "afcm", 
+                   icon = icon("envelopes-bulk")),
           menuItem(labelInput("jerarquico"), tabName = "cj",
                    icon = icon("sitemap")),
           menuItem(labelInput("kmedias"), tabName = "kmedias",
                    icon = icon("object-group")),
-          menuItem(labelInput("acercade"), tabName = "acercaDe",
+          menuItem(labelInput("acerca"), tabName = "acercaDe",
                    icon = icon("info")),
           hr(),
           menu.idioma(),
+          hr(),
+          img(src = "img/discoveR.png", style = 
+                "margin-left: auto;margin-right: auto;display: block;width: 80%;"),
           tags$div(style = "display:none;",
                    sliderInput(inputId = "aux", min = 2, value = 2,
                                label = "Cantidad de Clusters", max = 10),
@@ -73,28 +82,35 @@ app_ui <- function(request) {
         tabItems(
           
           # Carga de Datos
-          tabItem(tabName = "cargar",  mod_carga_datos_ui("carga_datos_ui_1")),
+          tabItem(tabName = "cargar", mod_carga_datos_ui(
+            "carga_datos_ui_1", labelInput('data'), paquete = "discoveR")),
           
           # Resumen Numérico
-          tabItem(tabName = "resumen", mod_r_numerico_ui("r_numerico_ui_1")),
+          tabItem(tabName = "resumen", loadeR::mod_r_numerico_ui("r_numerico_ui_1")),
           
           # Test de Normalidad
-          tabItem(tabName = "normalidad", mod_normal_ui("normal_ui_1")),
+          tabItem(tabName = "normalidad", loadeR::mod_normal_ui("normal_ui_1")),
           
           # Dispersión
           tabItem(tabName = "dispersion",
-                  mod_dispersion_ui("dispersion_ui_1")),
+                  loadeR::mod_dispersion_ui("dispersion_ui_1")),
           
           # Distribuciones
           tabItem(tabName = "distribucion", 
-                  mod_distribuciones_ui("distribuciones_ui_1")),
+                  loadeR::mod_distribuciones_ui("distribuciones_ui_1")),
           
           # Correlaciones
           tabItem(tabName = "correlacion", 
-                  mod_correlacion_ui("correlacion_ui_1")),
+                  loadeR::mod_correlacion_ui("correlacion_ui_1")),
           
           # ACP
           tabItem(tabName = "acp", mod_acp_ui("acp_ui_1")),
+          
+          # AFC
+          tabItem(tabName = "afc", mod_afc_ui("afc_ui_1")),
+          
+          # AFCM
+          tabItem(tabName = "afcm", mod_afcm_ui("afcm_ui_1")),
           
           # Clusterización Jerarquica
           tabItem(tabName = "cj", mod_cj_ui("cj_ui_1")),
@@ -104,6 +120,16 @@ app_ui <- function(request) {
           
           # Acerca De
           tabItem(tabName = "acercaDe", mod_acercade_ui("acercade_ui_1"))
+        )
+      ),
+      
+      dashboardControlbar(
+        width = 500,
+        div(
+          style = "margin-right: 15px; margin-left: 15px;", 
+          h3(labelInput('code')), hr(), 
+          codigo.monokai("fieldCode", height = "70vh"),
+          downloadButton("btn_code", NULL, style = "width: 100%;")
         )
       )
     )
