@@ -2,6 +2,7 @@
 % Please edit documentation in R/discoveR.R
 \docType{package}
 \name{discoveR}
+\alias{discoveR-package}
 \alias{discoveR}
 \title{Exploratory Data Analysis System}
 \description{
@@ -14,10 +15,19 @@ Components Analysis, Hierarchical Clustering and the K-Means Method.
 \tabular{ll}{
 Package: \tab discoveR\cr
 Type: \tab Package\cr
-Version: \tab 3.1.2\cr
-Date: \tab 2023-01-18\cr
+Version: \tab 3.1.7\cr
+Date: \tab 2025-02-12\cr
 License: \tab GPL (>=2)\cr
 }
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://promidat.website/}
+  \item \url{https://github.com/PROMiDAT/discoveR}
+  \item Report bugs at \url{https://github.com/PROMiDAT/discoveR/issues}
+}
+
 }
 \author{
 Maintainer: Oldemar Rodriguez Rojas <oldemar.rodriguez@ucr.ac.cr>\cr
